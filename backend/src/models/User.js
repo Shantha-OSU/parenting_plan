@@ -13,6 +13,10 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true     // No two users can have the same email
   },
+  password: {
+    type: String,
+    required: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now  // Automatically set to current time
