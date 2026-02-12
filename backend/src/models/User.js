@@ -6,20 +6,44 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true   // User must have a name
+    required: true,
+    trim: true
   },
   email: {
     type: String,
     required: true,
-    unique: true     // No two users can have the same email
+    unique: true,
+    lowercase: true,
+    trim: true
   },
   password: {
     type: String,
-    required: true,
+    required() {
+      return this.authProvider === 'local';
+    },
+    select: false
+  },
+  authProvider: {
+    type: String,
+    enum: ['local', 'google'],
+    default: 'local'
+  },
+  firebaseUid: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  photoURL: {
+    type: String,
+    default: ''
+  },
+  lastLoginAt: {
+    type: Date,
+    default: Date.now
   },
   createdAt: {
     type: Date,
-    default: Date.now  // Automatically set to current time
+    default: Date.now
   }
 });
 

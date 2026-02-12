@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Parenting App Login</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #1a2330;
+      --muted: #5c6777;
+      --accent: #0a66c2;
+      --danger: #b42318;
+      --border: #d6deeb;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top, #ffffff 0%, var(--bg) 58%);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 460px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(16, 24, 40, 0.08);
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.5rem;
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    button {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.97rem;
+      cursor: pointer;
+      background: #fff;
+      transition: border-color 0.12s ease, transform 0.12s ease;
+    }
+
+    button:hover {
+      border-color: #b7c4d7;
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .primary {
+      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .secondary {
+      margin-top: 12px;
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 0.95rem;
+      color: var(--muted);
+      min-height: 22px;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .status.success {
+      color: #067647;
+    }
+
+    .user {
+      margin-top: 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #f8fbff;
+      display: none;
+    }
+
+    .row {
+      margin: 4px 0;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Sign in to Parenting App</h1>
+    <p>Use your Google account. After sign-in, your Firebase token is verified on the backend and stored in a secure server session.</p>
+
+    <button id="googleSignIn" class="primary">Continue with Google</button>
+    <button id="logoutBtn" class="secondary" disabled>Log out</button>
+
+    <div id="status" class="status">Checking authentication state...</div>
+    <section id="userBox" class="user">
+      <div class="row" id="userName"></div>
+      <div class="row" id="userEmail"></div>
+      <div class="row" id="userProvider"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signOut
+    } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+
+    const signInBtn = document.getElementById('googleSignIn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const statusEl = document.getElementById('status');
+    const userBox = document.getElementById('userBox');
+    const userName = document.getElementById('userName');
+    const userEmail = document.getElementById('userEmail');
+    const userProvider = document.getElementById('userProvider');
+    let auth = null;
+
+    function setStatus(message, type = '') {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`.trim();
+    }
+
+    function renderUser(user) {
+      if (!user) {
+        userBox.style.display = 'none';
+        logoutBtn.disabled = true;
+        signInBtn.disabled = false;
+        return;
+      }
+
+      userName.textContent = `Name: ${user.name || 'N/A'}`;
+      userEmail.textContent = `Email: ${user.email || 'N/A'}`;
+      userProvider.textContent = `Provider: ${user.authProvider || 'google'}`;
+      userBox.style.display = 'block';
+      logoutBtn.disabled = false;
+      signInBtn.disabled = false;
+    }
+
+    async function getSessionUser() {
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      return data.user || null;
+    }
+
+    async function loadFirebaseConfig() {
+      const response = await fetch('/api/auth/config', {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Could not load Firebase configuration');
+      }
+
+      return response.json();
+    }
+
+    async function start() {
+      try {
+        const config = await loadFirebaseConfig();
+        const app = initializeApp(config);
+        auth = getAuth(app);
+
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        signInBtn.addEventListener('click', async () => {
+          signInBtn.disabled = true;
+          setStatus('Opening Google sign-in...');
+
+          try {
+            const result = await signInWithPopup(auth, provider);
+            const idToken = await result.user.getIdToken();
+
+            const response = await fetch('/api/auth/session-login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ idToken })
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.error || 'Login request failed');
+            }
+
+            // Keep auth state server-side; do not persist Firebase client session.
+            await signOut(auth);
+
+            const user = await getSessionUser();
+            renderUser(user);
+            setStatus('Signed in successfully.', 'success');
+          } catch (error) {
+            setStatus(error.message || 'Google sign-in failed.', 'error');
+            renderUser(null);
+          } finally {
+            signInBtn.disabled = false;
+          }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+          logoutBtn.disabled = true;
+          setStatus('Signing out...');
+
+          try {
+            await fetch('/api/auth/logout', {
+              method: 'POST',
+              credentials: 'include'
+            });
+            await signOut(auth);
+            renderUser(null);
+            setStatus('Signed out.', 'success');
+          } catch (error) {
+            setStatus(error.message || 'Logout failed.', 'error');
+          } finally {
+            logoutBtn.disabled = false;
+          }
+        });
+
+        const user = await getSessionUser();
+        if (user) {
+          renderUser(user);
+          setStatus('You are already signed in.', 'success');
+        } else {
+          renderUser(null);
+          setStatus('Please sign in with Google.');
+        }
+      } catch (error) {
+        renderUser(null);
+        signInBtn.disabled = true;
+        setStatus(error.message || 'App initialization failed.', 'error');
+      }
+    }
+
+    start();
+  </script>
+</body>
+</html>

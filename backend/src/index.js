@@ -1,41 +1,93 @@
 // Load environment variables from .env file (like MONGODB_URI, PORT)
 require('dotenv').config();
 
-// Import the packages we need
-const express = require('express');  // Web framework for creating APIs
-const cors = require('cors');        // Allows frontend to talk to backend
+// Core runtime dependencies and local modules.
+const path = require('path');
+const { exec } = require('child_process');
+const express = require('express');
+const cors = require('cors');
+const session = require('express-session');
+const MongoStore = require('connect-mongo').default;
 const connectDB = require('./config/database');
 const routes = require('./routes');
 const Document = require('./models/Document');
+const { initializeFirebaseAdmin } = require('./config/firebaseAdmin');
 
-// Create our Express app
+// App bootstrap values.
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware - these run on every request
-app.use(cors());           // Allow requests from frontend
-app.use(express.json());   // Parse JSON data from requests
+// Allow browser clients to send cookies to the API and parse JSON request bodies.
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(express.json());
 
-// Use our routes for any URL starting with /api
+// Session cookie configuration. Session data is signed with SESSION_SECRET.
+const sessionOptions = {
+  name: 'parenting.sid',
+  secret: process.env.SESSION_SECRET || 'dev-session-secret-change-me',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 1000 * 60 * 60 * 24 * 7
+  }
+};
+
+// Persist sessions in MongoDB when available so login survives server restarts.
+if (process.env.MONGODB_URI) {
+  sessionOptions.store = MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    collectionName: 'sessions'
+  });
+} else {
+  console.warn('MONGODB_URI is not set. Falling back to in-memory session store.');
+}
+
+app.use(session(sessionOptions));
+
+// Serve the login page and static frontend assets from /src/public.
+app.use(express.static(path.join(__dirname, 'public')));
+
+// API routes (auth, documents, etc.) are exposed under /api.
 app.use('/api', routes);
 
-// Home page route
+// Root route for local development: open the sign-in page first.
 app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to the Parenting API!' });
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Start the server
+// Start order: DB connection, initial seed data, Firebase Admin, then HTTP server.
 async function startServer() {
-  await connectDB();  // Connect to database first
+  await connectDB();
   await seedSampleDocument();
 
+  // Firebase Admin is used server-side to verify Google/Firebase ID tokens.
+  try {
+    initializeFirebaseAdmin();
+    console.log('Firebase Admin initialized.');
+  } catch (error) {
+    console.warn(`Firebase Admin initialization skipped: ${error.message}`);
+  }
+
   app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    const appUrl = `http://localhost:${PORT}`;
+    console.log(`Server running at ${appUrl}`);
+
+    // Convenience for local dev so the login page opens automatically.
+    if (process.env.OPEN_BROWSER_ON_START !== 'false') {
+      openBrowser(appUrl);
+    }
   });
 }
 
 startServer();
 
+// Seed a starter document once so the app has data during early development.
 async function seedSampleDocument() {
   try {
     const count = await Document.countDocuments();
@@ -131,4 +183,24 @@ async function seedSampleDocument() {
   } catch (error) {
     console.error('Could not seed sample Document:', error.message);
   }
+}
+
+// Cross-platform helper for launching the system browser.
+function openBrowser(url) {
+  const commandByPlatform = {
+    win32: `start "" "${url}"`,
+    darwin: `open "${url}"`,
+    linux: `xdg-open "${url}"`
+  };
+
+  const command = commandByPlatform[process.platform];
+  if (!command) {
+    return;
+  }
+
+  exec(command, (error) => {
+    if (error) {
+      console.warn(`Could not open browser automatically: ${error.message}`);
+    }
+  });
 }

@@ -1,29 +1,29 @@
-// This file defines our API endpoints (URLs the frontend can call)
-
 const express = require('express');
 const router = express.Router();
 const Document = require('../models/Document');
 const User = require('../models/User');
+const {
+  getFirebaseAdmin,
+  isFirebaseAdminInitialized
+} = require('../config/firebaseAdmin');
 
-/* Middleware to check if a user is authenticated
- * This gets used like the following
- * router.get('/dashboard', isAuthenticated, (req, res) =>{...})
-**/
+const requiredFirebaseConfig = [
+  'FIREBASE_API_KEY',
+  'FIREBASE_AUTH_DOMAIN',
+  'FIREBASE_PROJECT_ID',
+  'FIREBASE_APP_ID'
+];
+
 const isAuthenticated = (req, res, next) => {
-    if (req.session.user) {
-        next(); // User is authenticated, proceed to the next middleware or route handler
-    } else {
-        res.status(401).json({ message: 'Unauthorized, please log in' });
-    }
+  if (req.session && req.session.user) {
+    return next();
+  }
+
+  return res.status(401).json({ message: 'Unauthorized, please log in' });
 };
 
-
-// GET /api/health - Check if server and database are working
 router.get('/health', (req, res) => {
   const mongoose = require('mongoose');
-
-  // Check if we're connected to MongoDB
-  // readyState: 0 = disconnected, 1 = connected
   const isConnected = mongoose.connection.readyState === 1;
 
   res.json({
@@ -32,113 +32,229 @@ router.get('/health', (req, res) => {
   });
 });
 
-// GET /api/documents - Get all documents
-router.get('/documents', async (req, res) => {
+router.get('/auth/config', (req, res) => {
+  const missing = requiredFirebaseConfig.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    return res.status(500).json({
+      error: `Missing Firebase web config env vars: ${missing.join(', ')}`
+    });
+  }
+
+  return res.json({
+    apiKey: process.env.FIREBASE_API_KEY,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.FIREBASE_APP_ID,
+    measurementId: process.env.FIREBASE_MEASUREMENT_ID
+  });
+});
+
+router.post('/auth/session-login', async (req, res) => {
   try {
-    const documents = await Document.find();
-    res.json(documents);
+    if (!isFirebaseAdminInitialized()) {
+      return res.status(503).json({
+        error: 'Firebase Admin is not initialized. Set service account env vars first.'
+      });
+    }
+
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ error: 'idToken is required' });
+    }
+
+    const admin = getFirebaseAdmin();
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+
+    if (!decodedToken.email) {
+      return res.status(400).json({ error: 'Google account email is required.' });
+    }
+
+    let user = await User.findOne({
+      $or: [
+        { firebaseUid: decodedToken.uid },
+        { email: decodedToken.email.toLowerCase() }
+      ]
+    });
+
+    if (!user) {
+      user = new User({
+        name: decodedToken.name || decodedToken.email,
+        email: decodedToken.email,
+        authProvider: 'google',
+        firebaseUid: decodedToken.uid,
+        photoURL: decodedToken.picture || ''
+      });
+    } else {
+      user.name = decodedToken.name || user.name;
+      user.email = decodedToken.email;
+      user.authProvider = 'google';
+      user.firebaseUid = decodedToken.uid;
+      user.photoURL = decodedToken.picture || user.photoURL || '';
+      user.lastLoginAt = new Date();
+    }
+
+    await user.save();
+
+    req.session.user = {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      authProvider: user.authProvider,
+      firebaseUid: user.firebaseUid
+    };
+
+    return res.status(200).json({
+      message: 'Login success',
+      authenticated: true,
+      user: req.session.user
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Firebase login failed:', error);
+    return res.status(401).json({ error: 'Firebase login failed' });
   }
 });
 
-// GET /api/documents/:id - Get a single document by ID
-router.get('/documents/:id', async (req, res) => {
+router.get('/auth/me', (req, res) => {
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({ authenticated: false });
+  }
+
+  return res.json({
+    authenticated: true,
+    user: req.session.user
+  });
+});
+
+router.post('/auth/logout', (req, res) => {
+  if (!req.session) {
+    return res.status(200).json({ message: 'No active session' });
+  }
+
+  return req.session.destroy((error) => {
+    if (error) {
+      console.error('Failed to log out', error);
+      return res.status(500).json({ message: 'Could not log out, please try again' });
+    }
+
+    res.clearCookie('parenting.sid');
+    return res.status(200).json({ message: 'Successfully logged out' });
+  });
+});
+
+router.get('/documents', isAuthenticated, async (req, res) => {
+  try {
+    const documents = await Document.find();
+    return res.json(documents);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/documents/:id', isAuthenticated, async (req, res) => {
   try {
     const document = await Document.findById(req.params.id);
-
     if (!document) {
       return res.status(404).json({ error: 'Document not found' });
     }
 
-    res.json(document);
+    return res.json(document);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
 
-// POST /api/documents - Create a new document
-router.post('/documents', async (req, res) => {
+router.post('/documents', isAuthenticated, async (req, res) => {
   try {
     const document = await Document.create(req.body);
-    res.status(201).json(document);
+    return res.status(201).json(document);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    return res.status(400).json({ error: error.message });
   }
 });
 
-// POST /api/login - login user
-// req must contain user login info in JSON (name, email, password)
 router.post('/login', async (req, res) => {
   try {
-    const { name, email, password } = req.body
-    // database check for user
-    const user = await User.findOne({email, password})
-    if (user) {
-      req.session.user = {
-        id: '1', // generate id?
-        username: name,
-        role: 'user'
-      }
-      // found user, proceed to login
-      // set session information here
-      // redirect users to home page of application/dashboard
-      console.log("Logging in user")
-      res.status(200).json({ message: 'Login success', authenticated: true});
-    } else {
-      // todo: make more descriptive res depending on if password wrong, user doesn't exist, etc.
-      console.error('User doesn\'t exist, login failed')
-      res.status(401).send("Login failed")
-    }
-  } catch (err) {
-    console.error('Error during user search: ', err)
-    res.status(400).json({ error: err.message });
-  } 
-})
-
-router.post('/logout', (req, res) => {
-    req.session.destroy(err => {
-        console.log('Logging out')
-        if (err) {
-            console.error('Failed to log out')
-            return res.status(500).json({ message: 'Could not log out, please try again' });
-        }
-        res.status(200).json({ message: 'Successfully logged out' });
+    const { email, password } = req.body;
+    const user = await User.findOne({
+      email: (email || '').toLowerCase(),
+      password,
+      authProvider: 'local'
     });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Login failed' });
+    }
+
+    req.session.user = {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      authProvider: user.authProvider
+    };
+
+    return res.status(200).json({ message: 'Login success', authenticated: true });
+  } catch (error) {
+    console.error('Error during user search:', error);
+    return res.status(400).json({ error: error.message });
+  }
 });
 
-
-// POST /api/create_user - create user
-// req must contain user login info in JSON (name, email, password)
-router.post('/createUser', async (req, res) => {
-  try {
-    const user = await User.findOne(req.body.email)
-    // might not need this logic if unique property of email is accounted for in User.create()
-    if (!user) {
-      await User.create(req.body)
-      res.status(201);
-    } else {
-      console.error('Create user failed, user already exists')
-      res.status(409).send('User already exists!')
+router.post('/logout', (req, res) => {
+  return req.session.destroy((error) => {
+    if (error) {
+      console.error('Failed to log out', error);
+      return res.status(500).json({ message: 'Could not log out, please try again' });
     }
 
-  } catch (err) {
-    console.error('Error during user creation: ', err)
-    res.status(400).json({ error: err.message });
-  } 
-})
+    res.clearCookie('parenting.sid');
+    return res.status(200).json({ message: 'Successfully logged out' });
+  });
+});
 
-// GET /api - Show available endpoints
+router.post('/createUser', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const normalizedEmail = (email || '').toLowerCase();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({ error: 'User already exists' });
+    }
+
+    const newUser = await User.create({
+      name,
+      email: normalizedEmail,
+      password,
+      authProvider: 'local'
+    });
+
+    return res.status(201).json({
+      id: newUser._id,
+      name: newUser.name,
+      email: newUser.email
+    });
+  } catch (error) {
+    console.error('Error during user creation:', error);
+    return res.status(400).json({ error: error.message });
+  }
+});
+
 router.get('/', (req, res) => {
   res.json({
     message: 'Parenting API',
     endpoints: {
       health: 'GET /api/health - Check server status',
-      documents: 'GET /api/documents - Get all documents',
-      document: 'GET /api/documents/:id - Get a document by ID',
-      createDocument: 'POST /api/documents - Create a new document',
-      login: 'POST /api/login - Login a user and get current session',
-      createUser: 'POST /api/createUser - Create a new user'
+      firebaseConfig: 'GET /api/auth/config - Firebase web config',
+      firebaseSessionLogin: 'POST /api/auth/session-login - Verify Firebase ID token',
+      currentUser: 'GET /api/auth/me - Get authenticated user from session',
+      firebaseLogout: 'POST /api/auth/logout - End authenticated session',
+      documents: 'GET /api/documents - Get all documents (authenticated)',
+      document: 'GET /api/documents/:id - Get a document by ID (authenticated)',
+      createDocument: 'POST /api/documents - Create a new document (authenticated)',
+      login: 'POST /api/login - Local login',
+      createUser: 'POST /api/createUser - Local user signup'
     }
   });
 });
