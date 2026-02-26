@@ -206,10 +206,11 @@ router.post('/logout', (req, res) => {
 // req must contain user login info in JSON (name, email, password)
 router.post('/createUser', requireDatabaseConnection, async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email })
+    const { name, email, password } = req.body;
+    const user = await User.findOne({ email })
     // might not need this logic if unique property of email is accounted for in User.create()
     if (!user) {
-      await User.create(req.body)
+      await User.create({ name, email, password })
       res.status(201);
     } else {
       console.error('Create user failed, user already exists')
