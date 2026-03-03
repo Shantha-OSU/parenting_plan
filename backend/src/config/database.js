@@ -41,7 +41,6 @@ async function connectDB() {
   try {
     // Connect to MongoDB using the URL from our .env file
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('Connected to MongoDB!');
     return true;
   } catch (error) {
     console.error('Could not connect to MongoDB:', error.message);
@@ -52,6 +51,12 @@ async function connectDB() {
     isConnecting = false;
   }
 }
+
+mongoose.connection.on('connected', () => {
+  const { host, port, name } = mongoose.connection;
+  const location = host ? `${host}:${port}/${name}` : name || 'unknown';
+  console.log(`MongoDB connected: ${location}`);
+});
 
 mongoose.connection.on('disconnected', () => {
   console.warn('MongoDB disconnected.');
