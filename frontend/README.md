@@ -1,327 +1,271 @@
-# ShareCare Frontend
+# ShareCare — Frontend
 
-The ShareCare frontend is a React-based web application designed to guide users through a multi-step parenting questionnaire.
-
-This project is built using **React + Vite**, providing fast development with hot module replacement (HMR) and modern frontend tooling.
+ShareCare is a React web application that guides co-parents through a step-by-step questionnaire to generate a court-ready Ohio Shared Parenting Plan. It connects to a Node.js/Express backend and uses Firebase for authentication.
 
 ---
 
-## Tech Stack
+## Prerequisites
 
-- **React** – Component-based UI library  
-- **Vite** – Development server and build tool with fast hot module replacement (HMR)  
-- **React Router DOM** – Client-side routing between questionnaire sections  
-- **Context API** – Shared state management for form data  
-- **ESLint & Prettier** – Code linting and formatting  
-- **Vitest & React Testing Library** – Unit and component testing  
+| Software | Minimum Version | Check | Download |
+|---|---|---|---|
+| Node.js | v18.0.0+ | `node --version` | https://nodejs.org/ |
+| npm | v9.0.0+ | `npm --version` | Included with Node.js |
+| Git | v2.0.0+ | `git --version` | https://git-scm.com/ |
 
----
-
-## Development Notes
-
-This project uses Vite's React plugin to enable fast refresh during development.  
-The React Compiler is not enabled due to its potential impact on development and build performance.
-
-TypeScript is not currently used. However, the project structure allows for future migration if needed.
 
 ---
 
-## Required Software
+## Setup
 
-Before you begin, ensure you have the following installed:
-
-| Software | Minimum Version | Check Command | Download Link |
-|----------|-----------------|---------------|---------------|
-| Node.js  | v18.0.0+ | `node --version` | https://nodejs.org/ |
-| npm      | v9.0.0+  | `npm --version`  | Included with Node.js |
-| Git      | v2.0.0+  | `git --version`  | https://git-scm.com/ |
-
----
-
-## Verify Installation
+### 1. Clone the repository
 
 ```bash
-# Check Node.js version (should be v18+)
-node --version
-
-# Check npm version (should be v9+)
-npm --version
-
-# Check Git version
-git --version
-```
-
-If any of these commands fail, install the missing software before proceeding.
-
----
-
-## Initial Setup
-
-## Step 1: Clone the Repository
-
-```bash
-# Navigate to your desired projects directory
-cd ~/Desktop  # Or wherever you want the project
-
-# Clone the repository
 git clone https://github.com/Yuris2/parenting_project.git
-
-# Navigate into the project
-cd parenting_project
-
-# Navigate to the frontend folder
-cd frontend
+cd parenting_project/frontend
 ```
 
----
-
-## Step 2: Install Dependencies
+### 2. Install dependencies
 
 ```bash
 npm install
 ```
 
-This will install:
+### 3. Configure environment variables
 
-- React – UI library  
-- React Router DOM – Client-side routing  
-- Vite – Build tool and development server  
-- ESLint – Code linting  
-- Prettier – Code formatting  
-- Vitest – Testing framework  
-- React Testing Library – React component testing utilities  
+```bash
+cp .env.example .env
+```
 
----
+Open `.env` and fill in the Firebase config values for your project. All `VITE_FIREBASE_*` variables are required or the app will not authenticate without them.
 
-## Step 3: Verify Setup
+```
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
+```
+
+> Never commit real Firebase credentials to the repository.
+
+### 4. Start the development server
 
 ```bash
 npm run dev
 ```
 
-Expected output:
-```
-VITE v5.x.x  ready in xxx ms
-➜  Local:   http://localhost:3000/
-➜  Network: use --host to expose
-➜  press h + enter to show help
-```
+Open `http://localhost:5173` in your browser. You should see the ShareCare landing page.
 
-Open your browser to:
-```
-http://localhost:3000
-```
-
-You should see the ShareCare application.
-
----
-
-## Project Structure
-
-## Key Directories Explained
-
-```bash
-src/
-├── components/     # Reusable UI components
-│   ├── common/     # Generic components (Button, Input, etc.)
-│   ├── layout/     # Layout components (Header, Footer)
-│   └── forms/      # Form-specific components
-├── pages/          # Route-level components (one per URL)
-├── context/        # Global state management
-│   └── FormContext # Shared questionnaire data
-├── hooks/          # Custom React hooks
-├── utils/          # Helper functions (validation, formatting, storage)5
-├── services/       # API integration (backend communication)
-```
-
-Each page represents a step in the questionnaire flow.
-
----
-
-## Running the Application
-
-Start the development server with hot module replacement:
-
-```bash
-npm run dev
-```
-
-- Automatically opens browser to `http://localhost:3000`
-- Changes auto-reload without losing component state
-- Fast refresh enabled
-
-### Dev Mode Keyboard Shortcuts
-
-- `h + Enter` – Show help  
-- `r + Enter` – Restart server  
-- `q + Enter` – Quit server  
-
----
-
-## Preview Production Build
-
-Test the production build locally:
-
-```bash
-# Build the app
-npm run build
-
-# Preview the build
-npm run preview
-```
-
-Preview opens at:
-
-```
-http://localhost:4173
-```
-
-by default.
+> The backend must be running on port 3000 for API calls to succeed. Visit `http://localhost:3000/api/health` to confirm the backend and database are connected before testing the full flow.
 
 ---
 
 ## Available Scripts
 
 | Command | Description |
-|----------|------------|
-| npm run dev | Start development server (port 3000) |
-| npm run build | Build optimized production bundle |
-| npm run preview | Preview production build |
-| npm run lint | Check for linting errors |
-| npm run lint:fix | Auto-fix linting issues |
-| npm run format | Format code using Prettier |
-| npm run test | Run tests in watch mode |
-| npm run test:ui | Run tests with visual dashboard |
-| npm run test:coverage | Generate test coverage report |
+|---|---|
+| `npm run dev` | Start server (auto-reload) |
+| `npm start` | Start server (production) |
+| `docker compose up -d` | Start MongoDB |
+| `docker compose down ` | Stop MongoDB |
+| `docker compose down -v` | Stop + delete data |
+| `npm run test` | Run tests in watch mode |
+| `npm run test -- fileName` | Run a single test file |
+| `npm run test:coverage` | Generate test coverage report |
+| `npm run test:ui` | Open Vitest visual dashboard |
 
 ---
 
-## Code Quality Checks
+## Project Structure
 
-Before committing code, always run:
-
-```bash
-npm run lint
-npm run lint:fix
-npm run format
-npm run test
+```
+frontend/
+├── src/
+│   ├── assets/
+│   │   ├── logos/          # ShareCare logo 
+│   │   |    └── ShareCare_Symmetrical Diamond Logo.png /   
+│   ├── components/
+│   │   ├── common/         # Layout and modal components
+│   │   │   ├── card.jsx
+│   │   │   ├── Header.jsx
+│   │   │   ├── Footer.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   ├── InviteModal.jsx
+│   │   │   └── LegalNoticeModal.jsx
+│   │   └── forms/          # Form inputs and composite question cards
+│   │       ├── TextInput.jsx
+│   │       ├── DatePicker.jsx
+│   │       ├── Dropdown.jsx
+│   │       ├── RadioButton.jsx
+│   │       ├── Checkbox.jsx
+│   │       ├── ChildCheckboxList.jsx
+│   │       ├── ScheduleBuilder.jsx
+│   │       ├── TextQuestion.jsx
+│   │       ├── RadioQuestion.jsx
+│   │       ├── PolicyAgreementQuestion.jsx
+│   │       ├── SafetyPrivacyQuestion.jsx
+│   │       ├── SectionHeader.jsx
+│   │       ├── FlagButton.jsx
+│   │       └── Disclaimer.jsx
+│   ├── context/
+│   │   ├── FormContext.jsx       # Global questionnaire state (useReducer + localStorage)
+│   │   └── NavigationContext.jsx # Back/Next callback injection for questionnaire steps
+│   ├── hooks/
+│   │   ├── useForm.js            # Reads FormContext; throws if used outside FormProvider
+│   │   └── useSectionFlag.js     # Manages per-question flag state via UPDATE_FLAG
+│   ├── layouts/
+│   │   └── MainLayout.jsx        # Authenticated shell: Sidebar, Header, Footer, nav logic
+│   ├── lib/
+│   │   ├── firebase.js           # Firebase app initialization
+│   │   ├── apiClient.js          # buildApiUrl() helper for base URL management
+│   │   ├── authApi.js            # syncFirebaseUserProfileSafely()
+│   │   └── inviteApi.js          # sendCaseInvite(), getPendingInviteLink()
+│   ├── pages/
+│   │   ├── auth/
+│   │   │   ├── SignIn.jsx
+│   │   │   └── SignUp.jsx
+│   │   ├── LandingPage.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── GettingStarted.jsx
+│   │   ├── ParentalRights.jsx
+│   │   ├── ParentingTimeAndCommunication.jsx
+│   │   ├── InformationSharing.jsx
+│   │   ├── TaxExemptions.jsx
+│   │   ├── Review.jsx
+│   │   ├── Comparison.jsx
+│   │   ├── ResolutionReview.jsx
+│   │   ├── FinalResolution.jsx
+│   │   ├── WaitingScreen.jsx
+│   │   ├── InviteAccept.jsx
+│   │   ├── TermsOfService.jsx
+│   │   ├── PrivacyPolicy.jsx
+│   │   └── ContactSupport.jsx
+│   └── utils/
+│       └── renderWithRouter.jsx  # Shared test utility (MemoryRouter + FormProvider + NavigationProvider)
+├── tests/
+│   ├── components/               # Component unit tests
+│   ├── layouts/                  # Layout unit tests
+│   └── pages/                    # Page integration tests
+├── .env.example
+├── index.html
+├── README.md
+├── index.html
+├── vite.config.js
+└── package.json
 ```
 
 ---
 
-## Building for Production
+## Application Flow
 
-## Create Production Build
-
-```bash
-npm run build
+```
+/ (LandingPage)
+  └── /signup → /signin → /dashboard
+        └── /getting-started
+              └── /parental-rights
+                    └── /parenting-time-communication
+                          └── /informationsharing
+                                └── /tax-exemptions
+                                      └── /review
+                                            └── /comparison/:caseId (collaborative mode)
+                                                  └── /resolution-review/:caseId  (Parent 2)
+                                                  └── /resolution/:caseId         (Parent 1)
+                                                  └── /waiting/:caseId            (polling)
 ```
 
-This generates a `dist/` folder containing:
+Questionnaire steps (`/getting-started` through `/review`) are wrapped in `MainLayout`, which owns all Back/Next/Save navigation logic and API calls to the logic engine.
 
-- Minified JavaScript  
-- Optimized CSS  
-- Compressed assets  
-- Source maps for debugging  
+---
 
-Output location:
-```
-frontend/dist/
+## State Management
+
+Global form state is managed by `FormContext` using React's `useReducer`. State is automatically persisted to `localStorage` on every change and rehydrated on page load.
+
+Key state slices: `plan`, `parents`, `children`, `question`, `currAnswer`, `collaborationMode`, `flags`, and one slice per questionnaire step.
+
+Four action types: `UPDATE_SECTION`, `UPDATE_FLAG`, `LOAD_SAVED`, `RESET`.
+
+Access state in any component via the `useForm` hook:
+
+```jsx
+import { useForm } from '../hooks/useForm'
+
+const { state, dispatch } = useForm()
 ```
 
 ---
 
-## Build Verification
+## Authentication
 
-```bash
-npm run preview
+Firebase Auth handles all authentication. The pattern for making authenticated API calls:
+
+```js
+const idToken = await user.getIdToken()
+
+const response = await fetch(buildApiUrl('/api/plan/' + planId), {
+  headers: { Authorization: `Bearer ${idToken}` }
+})
 ```
 
-Thoroughly test the application in preview mode before deployment.
+Always call `user.getIdToken()` immediately before each request — never cache the token. Firebase refreshes it automatically when close to expiry.
 
 ---
 
 ## Testing
 
-This project uses [Vitest](https://vitest.dev/) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) for unit and component testing.
-
-
-**Note:** Testing dependencies are included in `package.json`. Running `npm install` is sufficient — do not run the project with a globally installed version of Vitest as version mismatches will cause errors.
-
-## Running Tests
+Tests are written with [Vitest](https://vitest.dev/) and [React Testing Library](https://testing-library.com/).
 
 ```bash
-# Run tests in watch mode
-npm run test
-
-# Run tests once (CI mode)
+# Run all tests
 npm run test -- --run
 
-# Run tests with coverage
+# Watch mode
+npm run test
+
+# Coverage report
 npm run test:coverage
-
-# Run tests with visual dashboard
-npm run test:ui
 ```
 
-## Where Tests Live
-
-Test files should be organized in the tests folder within frontend/, grouped by type:
-
-```
-frontend/
-  tests/
-    components/
-    pages/
-```
-
-## Writing a Test
-
-Test user-visible behavior rather than internal implementation details.
-Find elements the way a user would — by label, role, or visible text.
+Use `renderWithRouter` from `src/utils/renderWithRouter.jsx` for page-level tests — it wraps the component in `MemoryRouter`, `FormProvider`, and `NavigationProvider`, mirroring the production layout:
 
 ```jsx
+import { renderWithRouter } from '../../src/utils/renderWithRouter'
 
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import ParentInfoForm from '../components/ParentInfoForm'
-
-it('shows an error if the name field is left empty', async () => {
-  render(<ParentInfoForm />)
-  await userEvent.click(screen.getByRole('button', { name: /next/i }))
-  expect(screen.getByText('Name is required')).toBeInTheDocument()
+it('renders without crashing', () => {
+  renderWithRouter(<MyPage />)
 })
 ```
 
-## Conventions
+Seed `localStorage` before rendering if the component reads form state:
 
-- Test files use the `.test.jsx` extension
-- Each component should have a corresponding test file
-- Focus on validating user-visible behavior (inputs, errors, navigation)
-- Avoid testing internal state directly
+```js
+beforeEach(() => {
+  localStorage.clear()
+  localStorage.setItem('sharedCareForm', JSON.stringify({ /* state shape */ }))
+})
+```
+
+Before opening a pull request, run:
+
+```bash
+npm run lint
+npm run test -- --run
+```
+
+Both must pass with no errors.
 
 ---
 
-### Shared Test Utilities
+## Legal and Safety Notes
 
-A shared render helper is available at `src/test/utils.jsx`. Use this instead of setting up router wrappers manually in each test file.
+This codebase handles sensitive family law data. A few rules apply to all contributors:
 
-```jsx
-import { renderWithRouter } from '../test/utils'
-it('renders the form', () => {
-  renderWithRouter()
-})
+- All disclaimer and legal notice text must be modified through `src/utils/disclaimerText.js` and requires legal team sign-off before merging
+- Parent address and contact information must never be shared between co-parents — this is enforced via `collaborationMode` and must be preserved in any changes to the comparison or resolution flow
+- See Section 9d of the Developer Manual for more information related to legal disclaimers
 
-```
+---
 
-### What to Test
-
-Each form section should have tests covering:
-
-- Renders without crashing
-- Validation catches empty required fields
-- Valid input is accepted
-- Next/Back navigation works correctly
-
-
-_Last Updated: February 17, 2026_
+*Last updated: April 2026*
