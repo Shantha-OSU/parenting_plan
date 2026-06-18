@@ -15,6 +15,12 @@ function isCaseMember(parentingCase, uid) {
   return parentingCase.parent1Uid === uid || parentingCase.parent2Uid === uid;
 }
 
+// Items P2 flagged that P1 did not address in the final pass remain as disagreements.
+function countRemainingDisagreements(reviewDoc, finalAnswers) {
+  const flagged = (reviewDoc?.reviews ?? []).filter(r => !r.accepted).map(r => r.qKey);
+  return flagged.filter(qKey => finalAnswers[qKey] === undefined).length;
+}
+
 // GET /api/v1/cases/:caseId/status
 router.get('/:caseId/status', verifyToken, async (req, res) => {
   try {
@@ -187,7 +193,9 @@ router.post('/:caseId/merge', verifyToken, async (req, res) => {
     if (!isCaseMember(parentingCase, req.user.uid)) return res.status(403).json({ error: 'Forbidden' });
 
     // Convert the merged answer map into the Plan.answers array format: [{ qKey, answer }]
-    const mergedAnswersArray = Object.entries(req.body.mergedAnswers || {}).map(([qKey, answer]) => ({ qKey, answer }));
+    const mergedAnswersArray = Object.entries(req.body.mergedAnswers || {})
+      .filter(([, answer]) => answer != null)
+      .map(([qKey, answer]) => ({ qKey, answer }));
 
     // Look up both parents' emails to use as descriptive plan names
     const [p1User, p2User] = await Promise.all([
@@ -333,33 +341,27 @@ router.post('/:caseId/resolutions/final', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'finalAnswers object is required' });
     }
 
-    // Apply final answers using arrayFilters so we only touch changed items
-    // and never re-validate untouched subdocuments.
+    // Apply final answers using the positional $ operator — one update per changed key.
+    // This is clearer than building dynamic arrayFilters for an arbitrary number of keys.
     const changedKeys = Object.keys(finalAnswers);
     if (changedKeys.length > 0) {
-      const updateOps = { submittedAt: new Date() };
-      const arrayFilters = changedKeys.map((qKey, i) => ({ [`elem${i}.qKey`]: qKey }));
-      changedKeys.forEach((qKey, i) => {
-        updateOps[`resolutions.$[elem${i}].proposedAnswer`] = finalAnswers[qKey];
-        updateOps[`resolutions.$[elem${i}].source`] = 'custom';
-      });
+      for (const [qKey, answer] of Object.entries(finalAnswers)) {
+        await Resolution.findOneAndUpdate(
+          { caseId: parentingCase._id, 'resolutions.qKey': qKey },
+          { $set: { 'resolutions.$.proposedAnswer': answer, 'resolutions.$.source': 'custom' } }
+        );
+      }
       await Resolution.findOneAndUpdate(
         { caseId: parentingCase._id },
-        { $set: updateOps },
-        { arrayFilters, new: true }
+        { $set: { submittedAt: new Date() } }
       );
     }
 
     const resolution = await Resolution.findOne({ caseId: parentingCase._id });
     if (!resolution) return res.status(404).json({ error: 'No resolutions found for this case' });
 
-    // Determine remaining disagreements from P2's review.
-    // Items P2 flagged AND P1 did not change in this final pass are still in disagreement.
     const review = await ResolutionReview.findOne({ caseId: parentingCase._id });
-    const flaggedKeys = new Set((review?.reviews ?? []).filter((r) => !r.accepted).map((r) => r.qKey));
-
-    // If P1 submitted a new answer for a flagged key, consider it addressed.
-    const remainingCount = [...flaggedKeys].filter((qKey) => finalAnswers[qKey] === undefined).length;
+    const remainingCount = countRemainingDisagreements(review, finalAnswers);
 
     parentingCase.status = remainingCount === 0 ? 'resolved' : 'needs_discussion';
     await parentingCase.save();

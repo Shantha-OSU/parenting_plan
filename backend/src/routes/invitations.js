@@ -15,6 +15,7 @@ const INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Looks up an invitation by token and checks it is still valid.
 // Returns { invitation } on success, or { error, status } if something is wrong.
 // Used by both the GET and POST /accept routes to avoid duplicating this logic.
+// 410 Gone (not 404) so the frontend can distinguish "never existed" from "expired/used".
 async function findValidInvitation(token) {
   const invitation = await Invitation.findOne({ token });
   if (!invitation) return { error: 'Invitation not found', status: 410 };
@@ -90,7 +91,7 @@ router.post('/invitations/:token/accept', verifyToken, async (req, res) => {
     // Prevent a third party from hijacking the invite if they somehow obtained the link
     if (parentingCase.parent2Uid) return res.status(409).json({ error: 'A co-parent has already joined this case' });
 
-    // The accepting user must be signed in with the email the invite was sent to
+    // Firebase normalises emails to lowercase, but compare case-insensitively as a defensive measure
     const userEmail = req.user.email || '';
     if (userEmail.toLowerCase() !== invitation.invitedEmail.toLowerCase()) {
       return res.status(403).json({ error: 'This invitation was sent to a different email address' });

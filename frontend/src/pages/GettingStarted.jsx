@@ -19,7 +19,7 @@ export default function GettingStarted() {
   const { setOnNext, setOnBack } = useNavigation();
 
   const formData = state.parents ?? { name: '', secondParentName: '', errors: {} };
-  const collaborationMode = state.plan.collaborationMode ?? '';
+  const collaborationMode = (state.plan.collaborationMode || (state.plan.isShared ? 'collaborative' : ''));
   const caseFilingStatus = state.plan.userRole ?? '';
   const residentialParent = state.plan.residentialParent ?? '';
   const parentingGuideInfo = state?.parentingGuideInfo ?? '';
@@ -47,6 +47,9 @@ export default function GettingStarted() {
     setCollaborationModeError('');
     setCaseFilingError('');
     setChildren(prev => prev.map(c => ({ ...c, errors: {} })));
+    if (state.plan.isShared && !state.plan.collaborationMode) {
+      handleCollaborationModeChange('collaborative');
+    }
   }, []);
 
   useEffect(() => {

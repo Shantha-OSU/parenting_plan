@@ -3,7 +3,8 @@ const nodemailer = require('nodemailer');
 let transporter;
 
 
-// Support the current EMAIL_SMTP_* contract and older EMAIL_* names.
+// EMAIL_SMTP_* is the current contract; EMAIL_* is the legacy name.
+// Safe to remove the EMAIL_* fallbacks once all deployed envs use EMAIL_SMTP_*.
 function getEmailConfig() {
   const port = Number(process.env.EMAIL_SMTP_PORT || process.env.EMAIL_PORT || 465);
   const secureFlag = process.env.EMAIL_SMTP_SECURE;
@@ -44,7 +45,8 @@ function getEmailConfig() {
   return config;
 }
 
-// Create the SMTP transporter lazily so route imports do not fail before env vars load.
+// Lazy init: creating the transporter at module-load time throws if env vars aren't set yet,
+// which breaks any route that imports this service during test/CI startup.
 function getTransporter() {
   if (!transporter) {
     const config = getEmailConfig();
