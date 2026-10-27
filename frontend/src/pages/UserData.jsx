@@ -3,15 +3,15 @@ import { buildApiUrl } from '../lib/apiClient';
 import './UserData.css';
 
 const fields = [
-  'zipCode',
-  'collaborationMode',
-  'gender',
-  'background',
-  'race',
-  'income',
-  'household',
-  'language',
-  'education'
+  { key: 'zipCode', label: 'ZIP code' },
+  { key: 'collaborationMode', label: 'Parenting plan approach' },
+  { key: 'gender', label: 'Gender' },
+  { key: 'background', label: 'Background' },
+  { key: 'race', label: 'Race / ethnicity' },
+  { key: 'income', label: 'Household income' },
+  { key: 'household', label: 'Household' },
+  { key: 'language', label: 'Language' },
+  { key: 'education', label: 'Education' }
 ];
 
 function summarizeUsers(users) {
@@ -21,12 +21,12 @@ function summarizeUsers(users) {
       : Number(user.parentAge))
     .filter((age) => Number.isFinite(age));
 
-  const distributions = Object.fromEntries(fields.map((field) => {
+  const distributions = Object.fromEntries(fields.map(({ key }) => {
     const counts = new Map();
     let respondents = 0;
 
     users.forEach((user) => {
-      const answer = user[field];
+      const answer = user[key];
       const values = (Array.isArray(answer) ? answer : [answer])
         .map((value) => typeof value === 'string' ? value.trim() : value)
         .filter((value) => value !== null && value !== undefined && value !== '')
@@ -52,7 +52,7 @@ function summarizeUsers(users) {
         ])
     );
 
-    return [field, { respondents, choices }];
+    return [key, { respondents, choices }];
   }));
 
   return {
@@ -64,6 +64,75 @@ function summarizeUsers(users) {
     distributions
   };
 }
+
+function DistributionCard({ field, distribution }) {
+  const choices = Object.entries(distribution.choices);
+  const totalSelections = choices.reduce((total, [, choice]) => total + choice.count, 0);
+  let offset = 0;
+  const slices = choices.map(([value, choice], index) => {
+    const start = offset;
+    offset += (choice.count / totalSelections) * 100;
+    return `${chartColors[index % chartColors.length]} ${start}% ${offset}%`;
+  });
+  const chartStyle = {
+    background: choices.length
+      ? `conic-gradient(${slices.join(', ')})`
+      : 'conic-gradient(#e5e7eb 0% 100%)'
+  };
+
+  return (
+    <article className="user-data__distribution-card">
+      <div className="user-data__distribution-heading">
+        <h2>{field.label}</h2>
+        <span>{distribution.respondents} responses</span>
+      </div>
+      {choices.length === 0 ? (
+        <p className="user-data__empty">No responses yet</p>
+      ) : (
+        <div className="user-data__chart-content">
+          <div
+            className="user-data__donut"
+            role="img"
+            aria-label={`${field.label} distribution across ${totalSelections} selections`}
+            style={chartStyle}
+          >
+            <span className="user-data__donut-center">
+              <strong>{totalSelections}</strong>
+              <span>selections</span>
+            </span>
+          </div>
+          <ul className="user-data__legend">
+            {choices.map(([value, choice], index) => (
+              <li key={value}>
+                <span
+                  className="user-data__legend-swatch"
+                  style={{ backgroundColor: chartColors[index % chartColors.length] }}
+                  aria-hidden="true"
+                />
+                <span className="user-data__legend-label" title={value}>{value}</span>
+                <span className="user-data__legend-count">
+                  {choice.count}
+                  <span className="user-data__legend-percent">{choice.percentage}%</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </article>
+  );
+}
+
+const chartColors = [
+  '#2563eb',
+  '#7c3aed',
+  '#db2777',
+  '#ea580c',
+  '#16a34a',
+  '#0891b2',
+  '#ca8a04',
+  '#4f46e5'
+];
 
 export default function UserData() {
   const [users, setUsers] = useState(null);
@@ -96,8 +165,63 @@ export default function UserData() {
     };
   }, []);
 
-  if (error) return <pre>{error}</pre>;
-  if (users === null) return <pre>Loading...</pre>;
+  if (error) {
+    return (
+      <main className="user-data">
+        <p className="user-data__error" role="alert">{error}</p>
+      </main>
+    );
+  }
+  if (users === null) {
+    return <main className="user-data" aria-busy="true"><p>Loading aggregate data...</p></main>;
+  }
 
-  return <pre>{JSON.stringify(summarizeUsers(users), null, 2)}</pre>;
+  const summary = summarizeUsers(users);
+
+  return (
+    <main className="user-data">
+      <header className="user-data__header">
+        <p className="user-data__eyebrow">Community overview</p>
+        <h1>Aggregate data dashboard</h1>
+        <p>Explore the demographics and preferences represented in parenting plans.</p>
+      </header>
+
+      <section className="user-data__metrics" aria-label="Summary statistics">
+        <article className="user-data__metric-card">
+          <span className="user-data__metric-label">Plans represented</span>
+          <strong>{summary.planRecords.toLocaleString()}</strong>
+          <span className="user-data__metric-note">Aggregate plan records</span>
+        </article>
+        <article className="user-data__metric-card">
+          <span className="user-data__metric-label">Average parent age</span>
+          <strong>{summary.averageParentAge === null ? '—' : summary.averageParentAge}</strong>
+          <span className="user-data__metric-note">
+            {summary.parentAgeRespondents.toLocaleString()} age responses
+          </span>
+        </article>
+      </section>
+
+      <section className="user-data__distributions" aria-labelledby="user-data-distributions-title">
+        <div className="user-data__section-heading">
+          <div>
+            <h2 id="user-data-distributions-title">Response distributions</h2>
+            <p>Counts show how many plans selected each response. Percentages are of respondents.</p>
+          </div>
+          <p className="user-data__data-note">
+            A plan may include multiple selections, so percentages can add up to more than 100%.
+            The total reflects plans, not unique users.
+          </p>
+        </div>
+        <div className="user-data__distribution-grid">
+          {fields.map((field) => (
+            <DistributionCard
+              key={field.key}
+              field={field}
+              distribution={summary.distributions[field.key]}
+            />
+          ))}
+        </div>
+      </section>
+    </main>
+  );
 }
