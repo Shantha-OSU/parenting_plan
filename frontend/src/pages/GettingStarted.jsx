@@ -217,13 +217,28 @@ export default function GettingStarted() {
     requiredParentFields.forEach(([field, message]) => {
       if (!String(formData[field] ?? '').trim()) parentErrors[field] = message;
     });
-
+    const parentAge = Number(formData.age);
+    if (
+      String(formData.age ?? '').trim() &&
+      (!Number.isInteger(parentAge) || parentAge <= 0 || parentAge > 120)
+    ) {
+      parentErrors.age = 'Enter a valid age.';
+    }
     dispatch({
       type: 'UPDATE_SECTION',
       section: 'parents',
       payload: { errors: parentErrors },
     });
-
+    if (
+      formData.zipCode &&
+      !/^\d{5}$/.test(formData.zipCode)
+    ) {
+      parentErrors.zipCode = 'Enter a valid 5-digit ZIP code.';
+    }
+    const phoneDigits = String(formData.phone ?? '').replace(/\D/g, '');
+    if (formData.phone && phoneDigits.length !== 10) {
+      parentErrors.phone = 'Enter a valid 10-digit phone number.';
+    }
     let isValid = Object.keys(parentErrors).length === 0;
     if (!collaborationMode) {
       setCollaborationModeError('Select a collaboration mode to continue.');
@@ -317,14 +332,20 @@ export default function GettingStarted() {
                   </div>
                   <TextInput
                     id="firstParentAge"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={formData.age ?? ''}
-                    onChange={handleFormChange('parents', 'age')}
+                    onChange={(value) => {
+                      if (/^\d*$/.test(value)) {
+                        handleFormChange('parents', 'age')(value);
+                      }
+                    }}
                     error={errors.age}
                     placeholder="Enter your age"
                     label="Age"
                     required
                   />
+
                   <TextInput
                     id="firstParentPhone"
                     type="tel"
@@ -380,7 +401,11 @@ export default function GettingStarted() {
                     id="firstParentZipCode"
                     type="text"
                     value={formData.zipCode ?? ''}
-                    onChange={handleFormChange('parents', 'zipCode')}
+                    onChange={(value) => {
+                      if (/^\d{0,5}$/.test(value)) {
+                        handleFormChange('parents', 'zipCode')(value);
+                      }
+                    }}
                     error={errors.zipCode}
                     label="Zip Code"
                     autoComplete="postal-code"
