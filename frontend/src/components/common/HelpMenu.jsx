@@ -1,18 +1,18 @@
-import { useState } from 'react';
 import { Info } from 'lucide-react';
 import './HelpMenu.css';
 
 export default function HelpMenu({ text }) {
-
-    // If the question doesn't have any help text, don't render the help menu at all.
-    if(!text) return null;
+    const hasHelpText = typeof text === 'string'
+        ? text.trim().length > 0 && text.trim().toLowerCase() !== 'blank'
+        : Boolean(text);
+    if (!hasHelpText) return null;
 
     return (
-        <div className="help-menu">
-            <div className="help-menu__content">
+        <span className="help-menu">
+            <span className="help-menu__content">
                 <Info size={15} />
-                <span> <b></b>    {text}</span>
-            </div>
-        </div>
+                <span>{text}</span>
+            </span>
+        </span>
     );
 }

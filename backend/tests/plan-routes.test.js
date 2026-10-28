@@ -382,3 +382,40 @@ test('POST /api/plan/:planId/information saves aggregate demographic responses',
   assert.deepEqual(plan.aggregateData, aggregateData);
   assert.deepEqual(json.aggregateData, aggregateData);
 });
+
+test('changing circumstance groups removes only answers that no longer apply', async (t) => {
+  const plan = {
+    userID: 'user-1',
+    currentCircumstance: 'married',
+    answers: [
+      { qKey: 'married_question', answer: 'yes' },
+      { qKey: 'not_married_question', answer: 'no' },
+      { qKey: 'shared_question', answer: 'yes' },
+    ],
+    async save() {},
+  };
+  const server = await createTestServer({
+    Plan: { findById: async () => plan },
+    Question: {
+      find: () => ({
+        select: async () => [
+          { qKey: 'married_question', appliesToGroup: 'married' },
+          { qKey: 'not_married_question', appliesToGroup: 'not_married' },
+        ],
+      }),
+    },
+  });
+  t.after(() => server.close());
+
+  const result = await requestJson(server.baseUrl, '/api/plan/plan-1/information', {
+    method: 'POST',
+    body: { currentCircumstance: 'never_married_seeking_custody' },
+  });
+
+  assert.equal(result.response.status, 201);
+  assert.equal(plan.currentCircumstance, 'never_married_seeking_custody');
+  assert.deepEqual(
+    plan.answers.map(({ qKey }) => qKey),
+    ['not_married_question', 'shared_question'],
+  );
+});

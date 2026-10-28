@@ -7,6 +7,17 @@ const User = require('../models/User');
 const verifyToken = require('../middleware/verifyToken');
 const { getFirstName } = require('../utils/nameUtils');
 
+function getCircumstanceGroup(currentCircumstance) {
+  if (currentCircumstance === 'married') return 'married';
+  if ([
+    'never_married_seeking_custody',
+    'never_married_seeking_parenting_time',
+  ].includes(currentCircumstance)) {
+    return 'not_married';
+  }
+  return null;
+}
+
 // POST /api/plan - Start a new plan
 // Optional body: { caseId } — when provided (co-parent accept flow), the new plan
 // is linked to the existing Case rather than creating a fresh one.
@@ -349,7 +360,26 @@ router.post('/:planId/information', verifyToken, async (req, res) => {
     if (aggregateData !== undefined) {
       plan.aggregateData = aggregateData;
     }
-    plan.currentCircumstance = currentCircumstance;
+    if (currentCircumstance !== undefined) {
+      const previousCircumstanceGroup = getCircumstanceGroup(
+        plan.currentCircumstance || plan.userRole,
+      );
+      const nextCircumstanceGroup = getCircumstanceGroup(currentCircumstance);
+      if (nextCircumstanceGroup && previousCircumstanceGroup !== nextCircumstanceGroup) {
+        const circumstanceSpecificQuestions = await Question.find({
+          appliesToGroup: { $in: ['married', 'not_married'] },
+        }).select('qKey appliesToGroup');
+        const inapplicableQuestionKeys = new Set(
+          circumstanceSpecificQuestions
+            .filter((question) => question.appliesToGroup !== nextCircumstanceGroup)
+            .map((question) => question.qKey),
+        );
+        plan.answers = plan.answers.filter(
+          (savedAnswer) => !inapplicableQuestionKeys.has(savedAnswer.qKey),
+        );
+      }
+      plan.currentCircumstance = currentCircumstance;
+    }
     plan.caseFilingStatus = caseFilingStatus;
     plan.courtCustodyOrderIssued = courtCustodyOrderIssued;
     plan.custodyGrantedTo = courtCustodyOrderIssued === 'yes' ? custodyGrantedTo : '';

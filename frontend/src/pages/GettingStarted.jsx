@@ -548,8 +548,7 @@ const handleChildChange = (childKey, field) => (value) => {
                 </CardContent>
               </Card>
             </section>
-                        <hr className="section-divider" />
-
+            <hr className="section-divider" />
             <section className="aggregate-data">
               <SectionHeader
                 iconClassName="info-icon"
