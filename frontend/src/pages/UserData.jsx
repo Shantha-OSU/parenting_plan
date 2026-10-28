@@ -9,7 +9,7 @@ const fields = [
   { key: 'background', label: 'Background' },
   { key: 'race', label: 'Race / ethnicity' },
   { key: 'income', label: 'Household income' },
-  { key: 'household', label: 'Household' },
+  { key: 'household', label: 'Household size' },
   { key: 'language', label: 'Language' },
   { key: 'education', label: 'Education' }
 ];

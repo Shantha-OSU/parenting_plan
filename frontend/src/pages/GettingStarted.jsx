@@ -74,14 +74,33 @@ export default function GettingStarted() {
   const plan = state.plan ?? {};
   const aggregateData = plan.aggregateData ?? {};
   const collaborationMode = plan.collaborationMode ?? '';
-  const caseFilingStatus = plan.userRole ?? '';
-  const residentialParent = plan.residentialParent ?? '';
+  const legacyUserRole = plan.userRole ?? '';
+  const currentCircumstance = plan.currentCircumstance || (
+    ['married', 'never_married_seeking_custody', 'never_married_seeking_parenting_time']
+      .includes(legacyUserRole)
+      ? legacyUserRole
+      : ''
+  );
+  const caseFilingStatus = plan.caseFilingStatus || (
+    [
+      'parent1/petitioner1/plaintiff',
+      'parent2/petitioner2/defendant',
+      'no_case',
+      'flagged',
+    ].includes(legacyUserRole)
+      ? legacyUserRole
+      : ''
+  );
+  const courtCustodyOrderIssued = plan.courtCustodyOrderIssued ?? '';
+  const custodyGrantedTo = plan.custodyGrantedTo ?? '';
   const parentingGuideInfo = state?.parentingGuideInfo ?? '';
   const errors = formData.errors ?? {};
 
   const [collaborationModeError, setCollaborationModeError] = useState('');
+  const [currentCircumstanceError, setCurrentCircumstanceError] = useState('');
   const [caseFilingError, setCaseFilingError] = useState('');
-  const [residentialParentError, setResidentialParentError] = useState('');
+  const [courtOrderError, setCourtOrderError] = useState('');
+  const [custodyGrantedError, setCustodyGrantedError] = useState('');
   const [parentingGuideError, setParentingGuideError] = useState('');
 
   const caseFilingFlag = useSectionFlag('caseFilingStatus');
@@ -101,8 +120,10 @@ export default function GettingStarted() {
   useEffect(() => {
     dispatch({ type: 'UPDATE_SECTION', section: 'parents', payload: { errors: {} } });
     setCollaborationModeError('');
+    setCurrentCircumstanceError('');
     setCaseFilingError('');
-    setResidentialParentError('');
+    setCourtOrderError('');
+    setCustodyGrantedError('');
     setParentingGuideError('');
     setChildren(prev => prev.map(c => ({ ...c, errors: {} })));
   }, []);
@@ -147,7 +168,30 @@ export default function GettingStarted() {
     if (errors[field]) {
       dispatch({ type: 'UPDATE_SECTION', section: section, payload: { errors: { ...errors, [field]: '' } } });
     }
-    if (section === 'plan' && field === 'residentialParent') setResidentialParentError('');
+    if (section === 'plan' && field === 'currentCircumstance') setCurrentCircumstanceError('');
+    if (section === 'plan' && field === 'caseFilingStatus') setCaseFilingError('');
+  };
+
+  const handleCourtOrderChange = (value) => {
+    dispatch({
+      type: 'UPDATE_SECTION',
+      section: 'plan',
+      payload: {
+        courtCustodyOrderIssued: value,
+        ...(value === 'yes' ? {} : { custodyGrantedTo: '' }),
+      },
+    });
+    setCourtOrderError('');
+    if (value !== 'yes') setCustodyGrantedError('');
+  };
+
+  const handleCustodyGrantedChange = (value) => {
+    dispatch({
+      type: 'UPDATE_SECTION',
+      section: 'plan',
+      payload: { custodyGrantedTo: value },
+    });
+    setCustodyGrantedError('');
   };
 
   const handleAggregateChange = (field) => (value) => {
@@ -247,11 +291,32 @@ export default function GettingStarted() {
       setCollaborationModeError('');
     }
 
+    if (!currentCircumstance) {
+      setCurrentCircumstanceError('Select a current circumstance to continue.');
+      isValid = false;
+    } else {
+      setCurrentCircumstanceError('');
+    }
+
     if (!caseFilingStatus) {
       setCaseFilingError('Select a case filing status to continue.');
       isValid = false;
     } else {
       setCaseFilingError('');
+    }
+
+    if (!courtCustodyOrderIssued) {
+      setCourtOrderError('Select an option to continue.');
+      isValid = false;
+    } else {
+      setCourtOrderError('');
+    }
+
+    if (courtCustodyOrderIssued === 'yes' && !custodyGrantedTo) {
+      setCustodyGrantedError('Select an option to continue.');
+      isValid = false;
+    } else {
+      setCustodyGrantedError('');
     }
 
     const nextChildren = children.map((child) => {
@@ -265,13 +330,6 @@ export default function GettingStarted() {
       return { ...child, errors: childErrors };
     });
     setChildren(nextChildren);
-
-    if (!residentialParent) {
-      setResidentialParentError('Select an option to continue.');
-      isValid = false;
-    } else {
-      setResidentialParentError('');
-    }
 
     if (!parentingGuideInfo) {
       setParentingGuideError('Select an option to continue.');
@@ -563,8 +621,50 @@ export default function GettingStarted() {
               />
             </section>
             <hr className="section-divider" />
+            <section className="residential-parent-section">
+              <SectionHeader
+                iconClassName="info-icon"
+                icon={<Info size={25} />}
+                title="More Information"
+                help={
+                  <>
+                    Link to the{' '}
+                    <a href="https://www.supremecourt.ohio.gov/docs/Publications/JCS/parentingGuide.pdf" target="_blank" rel="noopener noreferrer">Ohio Supreme Court Parenting Guide</a>
+                  </>
+                }
+              />
+              <RadioQuestion
+                question="If you are unsure about any part of this parenting plan or how to answer specific questions, review the Ohio parenting plan resources linked above. Please note that neither the Ohio Supreme Court’s guide nor this form serves to give instructions or legal advice about your rights or options available to you. If you have questions, please speak with a lawyer."
+                name="parentingGuideInfo"
+                value={parentingGuideInfo}
+                onChange={handleRadioChange('parentingGuideInfo')}
+                error={parentingGuideError}
+                options={[
+                  { value: 'yes',   label: 'I understand' }
+                ]}
+              />
+            </section>
             <hr className="section-divider" />
-
+            <section className="case-filing-status-section">
+              <SectionHeader
+                iconClassName="info-icon"
+                icon={<Info size={25} />}
+                title="Current Circumstances"
+              />
+              <RadioQuestion
+                question="Which situation fits your current circumstance?"
+                name="currentCircumstance"
+                value={currentCircumstance}
+                onChange={handleFormChange('plan', 'currentCircumstance')}
+                error={currentCircumstanceError}
+                options={[
+                  { value: 'married', label: 'I am going through the process of a divorce, dissolution of marriage, or legal separation.' },
+                  { value: 'never_married_seeking_custody', label: 'I was never married to my co-parent, and I have or am seeking legal custody of our child(ren).'},
+                  { value: 'never_married_seeking_parenting_time', label: 'I was never married to my co-parent, and I want to establish parenting time with our child(ren).' },
+                ]}
+              />
+            </section>
+            <hr className="section-divider" />
             <section className="case-filing-status-section">
               <SectionHeader
                 iconClassName="info-icon"
@@ -573,10 +673,10 @@ export default function GettingStarted() {
                 help="Help us understand your legal situation."
               />
               <RadioQuestion
-                question="Did you file the divorce, separation, or child custody case that led to this parenting plan?"
+                question="Did you file the divorce, separation, custody, paternity, or parenting time petition that resulted in this parenting plan?"
                 name="caseFilingStatus"
                 value={caseFilingStatus}
-                onChange={handleFormChange('plan', 'userRole')}
+                onChange={handleFormChange('plan', 'caseFilingStatus')}
                 error={caseFilingError}
                 flag={caseFilingFlag}
                 disclaimers={[
@@ -591,7 +691,33 @@ export default function GettingStarted() {
               />
             </section>
             <hr className="section-divider" />
-
+            <section className="court-custody-order-section">
+              <RadioQuestion
+                question="Has an official custody order been issued by the court regarding the child(ren)?"
+                name="courtCustodyOrderIssued"
+                value={courtCustodyOrderIssued}
+                onChange={handleCourtOrderChange}
+                error={courtOrderError}
+                options={[
+                  { value: 'yes', label: 'Yes' },
+                  { value: 'no', label: 'No' },
+                ]}
+              />
+              {courtCustodyOrderIssued === 'yes' && (
+                <RadioQuestion
+                  question="Which parent was granted custody of the child(ren)?"
+                  name="custodyGrantedTo"
+                  value={custodyGrantedTo}
+                  onChange={handleCustodyGrantedChange}
+                  error={custodyGrantedError}
+                  options={[
+                    { value: 'me', label: 'Me' },
+                    { value: 'coparent', label: 'My co-parent' },
+                  ]}
+                />
+              )}
+            </section>
+            <hr className="section-divider" />
             <section className="children-section">
               <SectionHeader
                 iconClassName="users-icon"
@@ -716,53 +842,6 @@ export default function GettingStarted() {
               >
                 + Add Another Child
               </button>
-            </section>
-            <hr className="section-divider" />
-
-            <section className="residential-parent-section">
-              <SectionHeader
-                iconClassName="users-icon"
-                icon={<Users size={25} />}
-                title="Residential Parent"
-                help="This means your child spends most of their time with you"
-              />
-              <RadioQuestion
-                question="Are you the residential parent?"
-                name="residentialParent"
-                value={residentialParent}
-                onChange={handleFormChange('plan', 'residentialParent')}
-                error={residentialParentError}
-                options={[
-                  { value: 'yes',   label: 'Yes, I am the residential parent' },
-                  { value: 'no',    label: 'No, I am not' }
-                ]}
-              />
-            </section>
-
-            <hr className="section-divider" />
-
-            <section className="residential-parent-section">
-              <SectionHeader
-                iconClassName="info-icon"
-                icon={<Info size={25} />}
-                title="More Information"
-                help={
-                  <>
-                    Link to the{' '}
-                    <a href="https://www.supremecourt.ohio.gov/docs/Publications/JCS/parentingGuide.pdf" target="_blank" rel="noopener noreferrer">Ohio Supreme Court Parenting Guide</a>
-                  </>
-                }              
-              />
-              <RadioQuestion
-                question="If you are unsure about any part of this parenting plan or how to answer specific questions, review the Ohio parenting plan resources linked above. Please note that neither the Ohio Supreme Court’s guide nor this form serves to give instructions or legal advice about your rights or options available to you. If you have questions, please speak with a lawyer."
-                name="parentingGuideInfo"
-                value={parentingGuideInfo}
-                onChange={handleRadioChange('parentingGuideInfo')}
-                error={parentingGuideError}
-                options={[
-                  { value: 'yes',   label: 'I understand' }
-                ]}
-              />
             </section>
           </CardContent>
         </Card>

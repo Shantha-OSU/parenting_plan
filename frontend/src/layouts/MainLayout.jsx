@@ -157,8 +157,10 @@ export default function Layout({ children }) {
           state: parents.state,
           zipCode: parents.zipCode,
           aggregateData: plan.aggregateData ?? {},
-          userRole: plan.userRole,
-          residentialParent: plan.residentialParent
+          currentCircumstance: plan.currentCircumstance,
+          caseFilingStatus: plan.caseFilingStatus,
+          courtCustodyOrderIssued: plan.courtCustodyOrderIssued,
+          custodyGrantedTo: plan.custodyGrantedTo
       })
       })
       .then( async (response) => {

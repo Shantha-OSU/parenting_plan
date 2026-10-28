@@ -73,6 +73,37 @@ function toPlanAnswerMap(plan, parentRole) {
     }
   }
 
+  const legacyUserRole = plan.userRole ?? '';
+  const currentCircumstance = plan.currentCircumstance || (
+    ['married', 'never_married_seeking_custody', 'never_married_seeking_parenting_time']
+      .includes(legacyUserRole)
+      ? legacyUserRole
+      : ''
+  );
+  const caseFilingStatus = plan.caseFilingStatus || (
+    [
+      'parent1/petitioner1/plaintiff',
+      'parent2/petitioner2/defendant',
+      'no_case',
+      'flagged',
+    ].includes(legacyUserRole)
+      ? legacyUserRole
+      : ''
+  );
+  const gettingStartedFields = {
+    'getting-started.currentCircumstance': currentCircumstance,
+    'getting-started.caseFilingStatus': caseFilingStatus,
+    'getting-started.courtCustodyOrderIssued': plan.courtCustodyOrderIssued,
+    'getting-started.custodyGrantedTo': plan.courtCustodyOrderIssued === 'yes'
+      ? plan.custodyGrantedTo
+      : '',
+  };
+  for (const [qKey, answer] of Object.entries(gettingStartedFields)) {
+    if (answer !== undefined && answer !== null && answer !== '') {
+      answers[qKey] = parentRole ? normalizeAnswer(answer, parentRole) : answer;
+    }
+  }
+
   return answers;
 }
 
