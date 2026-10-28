@@ -50,7 +50,7 @@ export default function Dashboard() {
     if (!user) return;
     user.getIdToken()
       .then((idToken) => {
-        return fetch(buildApiUrl("api/plan/" + user.uid + "/all"), {
+        return fetch(buildApiUrl('/api/plan/all'), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

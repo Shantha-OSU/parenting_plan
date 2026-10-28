@@ -10,7 +10,7 @@ import './Comparison.css';
 import './FormDesigner.css';
 
 const MEDIATION_RESOURCES = [
-  'Ohio Mediation Association: ohiomediation.org',
+  'Ohio Mediation Association: mediateohio.org',
   'Ohio State Bar Association Lawyer Referral: ohiobar.org',
   'Family Court Self-Help Center: contact your local courthouse',
 ];

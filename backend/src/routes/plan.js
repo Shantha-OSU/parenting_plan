@@ -102,7 +102,18 @@ router.post('/delete', verifyToken, async (req, res) => {
   }
 });
 
-// GET /api/plan/:uid/all -> Get all plans a user currently owns
+// GET /api/plan/all -> Get all plans owned by the authenticated user
+router.get('/all', verifyToken, async (req, res) => {
+  try {
+    const plans = await Plan.find({ userID: req.user.uid });
+    res.status(200).json(plans);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/plan/:uid/all -> Legacy route retained for existing clients
 router.get('/:uid/all', verifyToken, async (req, res) => {
   if (req.params.uid !== req.user.uid) return res.status(403).json({ error: 'Forbidden' });
   try {

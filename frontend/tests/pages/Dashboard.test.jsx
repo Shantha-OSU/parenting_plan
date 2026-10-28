@@ -111,7 +111,7 @@ beforeEach(() => {
 
   global.fetch = vi.fn((url) => {
     // GET all plans for a user
-    if (url.includes('/all')) {
+    if (url.includes('/api/plan/all')) {
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve([{ ...DEFAULT_PLAN, collaborationMode: mockCollaborationMode }]),
