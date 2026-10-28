@@ -35,7 +35,7 @@ export default function SchoolSchedule({ value = {}, onChange, errors = {} }) {
       baseHolidays={SCHOOL_BREAKS}
       itemLabel="School break"
       ariaLabel="School schedule"
-      introText="Choose how each school break should be handled. You can mark a break as not applicable, assign it to odd, even, or every year, and add an alternative request."
+      introText="Choose whether each school break applies. The schedule details will appear after you select “Applies”."
       idPrefix="school-break"
       optionSets={SCHOOL_DAY_OPTIONS}
       timeDisabledItems={Object.keys(SCHOOL_DAY_OPTIONS)}

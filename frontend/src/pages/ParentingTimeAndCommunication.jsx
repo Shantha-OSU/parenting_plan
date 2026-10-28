@@ -137,15 +137,20 @@ export default function ParentingTimeAndCommunication() {
         const holidayErrors = {};
         getHolidayNames(formData.holidaySchedule).forEach((holiday) => {
             const selection = formData.holidaySchedule?.[holiday] || {
+                applies: false,
                 doesNotApply: false,
                 year: '',
                 time: '',
             };
-            if (!selection.doesNotApply && !selection.year) {
+            const applies = selection.applies ?? (!selection.doesNotApply && Boolean(selection.year || selection.time || selection.alternativeRequest));
+            if (!applies && !selection.doesNotApply) {
+                holidayErrors[holiday] = { choice: 'Select applies or does not apply' };
+                isValid = false;
+            } else if (applies && !selection.year) {
                 holidayErrors[holiday] = { year: 'Select odd, even, or every year' };
                 isValid = false;
             } else if (
-                !selection.doesNotApply &&
+                applies &&
                 selection.year === 'every' &&
                 !/^(0?[1-9]|1[0-2]):[0-5]\d ?(AM|PM)$/i.test(selection.time?.trim() || '')
             ) {
@@ -159,8 +164,12 @@ export default function ParentingTimeAndCommunication() {
 
         const schoolErrors = {};
         getHolidayNames(formData.schoolSchedule, SCHOOL_BREAKS).forEach((schoolBreak) => {
-            const selection = formData.schoolSchedule?.[schoolBreak] || { doesNotApply: false, year: '', time: '' };
-            if (!selection.doesNotApply && !selection.year) {
+            const selection = formData.schoolSchedule?.[schoolBreak] || { applies: false, doesNotApply: false, year: '', time: '' };
+            const applies = selection.applies ?? (!selection.doesNotApply && Boolean(selection.year || selection.time || selection.alternativeRequest));
+            if (!applies && !selection.doesNotApply) {
+                schoolErrors[schoolBreak] = { choice: 'Select applies or does not apply' };
+                isValid = false;
+            } else if (applies && !selection.year) {
                 schoolErrors[schoolBreak] = {
                     year: SCHOOL_DAY_OPTIONS[schoolBreak]
                         ? 'Select each day, alternate days, or whichever parent has the child that day'
@@ -168,7 +177,7 @@ export default function ParentingTimeAndCommunication() {
                 };
                 isValid = false;
             } else if (
-                !selection.doesNotApply &&
+                applies &&
                 !SCHOOL_DAY_OPTIONS[schoolBreak] &&
                 selection.year === 'every' &&
                 !/^(0?[1-9]|1[0-2]):[0-5]\d ?(AM|PM)$/i.test(selection.time?.trim() || '')
