@@ -65,6 +65,50 @@ function AggregateCheckboxQuestion({ question, name, value, options, onChange })
   );
 }
 
+function getAgeFromBirthday(birthday) {
+  if (!birthday) return null;
+
+  const [year, month, day] = birthday.split('-').map(Number);
+
+  const birthDate = new Date(year, month - 1, day);
+  const today = new Date();
+
+  if (
+    !year || !month || !day ||
+    birthDate.getFullYear() !== year ||
+    birthDate.getMonth() !== month - 1 ||
+    birthDate.getDate() !== day ||
+    birthDate > today
+  ) {
+    return null;
+  }
+
+  let years = today.getFullYear() - year;
+
+  if (
+    today.getMonth() + 1 < month ||
+    (today.getMonth() + 1 === month && today.getDate() < day)
+  ) {
+    years--;
+  }
+
+  let months =
+    (today.getFullYear() - year) * 12 +
+    (today.getMonth() + 1 - month);
+
+  if (today.getDate() < day) {
+    months--;
+  }
+
+  return {
+    years,
+    months,
+    display: years < 2
+      ? `${months} ${months === 1 ? 'month' : 'months'}`
+      : `${years} ${years === 1 ? 'year' : 'years'}`
+  };
+}
+
 export default function GettingStarted() {
   const navigate = useNavigate();
   const { state, dispatch } = useForm();
@@ -207,13 +251,43 @@ export default function GettingStarted() {
     });
   };
 
-  const handleChildChange = (childKey, field) => (value) => {
-    setChildren(prev => prev.map(child =>
-      child.key === childKey
-        ? { ...child, [field]: value, errors: { ...(child.errors ?? {}), [field]: '' } }
-        : child
-    ));
-  };
+
+const handleChildChange = (childKey, field) => (value) => {
+  setChildren(prev => prev.map(child => {
+    if (child.key !== childKey) return child;
+
+    const updatedChild = {
+      ...child,
+      [field]: value,
+      errors: {
+        ...(child.errors ?? {}),
+        [field]: ''
+      }
+    };
+
+    if (field === 'birthday') {
+      const calculatedAge = getAgeFromBirthday(value);
+
+      updatedChild.age = calculatedAge?.years ?? '';
+
+      updatedChild.classifications =
+        calculatedAge?.years < 18 && calculatedAge !== null
+          ? [...new Set([
+              ...child.classifications,
+              'under-18'
+            ])]
+          : child.classifications.filter(
+              item => item !== 'under-18'
+            );
+
+      updatedChild.errors.age = '';
+      updatedChild.errors.classification = '';
+    }
+
+    return updatedChild;
+  }));
+};
+
 
   const addChild = () => {
     const newKey = Math.max(...children.map(c => c.key), 0) + 1;
@@ -323,7 +397,9 @@ export default function GettingStarted() {
       const childErrors = {};
       if (!String(child.fName ?? '').trim()) childErrors.fName = 'Enter the child\'s first name.';
       if (!String(child.lName ?? '').trim()) childErrors.lName = 'Enter the child\'s last name.';
-      if (!String(child.age ?? '').trim()) childErrors.age = 'Enter the child\'s age.';
+      if (!getAgeFromBirthday(child.birthday)) {
+        childErrors.birthday = 'Enter a valid date of birth.';
+      }      
       if (!child.birthday) childErrors.birthday = 'Enter the child\'s date of birth.';
       if (!child.classifications?.length) childErrors.classification = 'Select at least one child classification.';
       if (Object.keys(childErrors).length > 0) isValid = false;
@@ -769,18 +845,15 @@ export default function GettingStarted() {
                             autoComplete="family-name"
                             error={submitAttempted ? child.errors?.lName : ''}
                           />
-                          <TextInput
-                            id={`child-${child.key}-age`}
-                            label="Age"
-                            type="text"
-                            value={child.age}
-                            onChange={handleChildChange(child.key, 'age')}
-                            required
-                            placeholder="Age"
-                            error={submitAttempted ? child.errors?.age : ''}
-                          />
+                        <TextInput
+                          id={`child-${child.key}-age`}
+                          label="Age"
+                          type="text"
+                          value={getAgeFromBirthday(child.birthday)?.display ?? ''}
+                          placeholder="Calculated from date of birth"
+                          disabled
+                        />
                         </div>
-
                         <DatePicker
                           id={`child-${child.key}-dateOfBirth`}
                           label="Date of Birth"
@@ -798,6 +871,7 @@ export default function GettingStarted() {
                                 id={`child-${child.key}-under-18`}
                                 label="My child is under 18."
                                 checked={child.classifications.includes('under-18')}
+                                disabled={getAgeFromBirthday(child.birthday) !== null}
                                 onChange={(checked) => {
                                   const classifications = checked ? [...new Set([...child.classifications, 'under-18'])] : child.classifications.filter(value => value !== 'under-18');
                                   handleChildChange(child.key, 'classifications')(classifications);
