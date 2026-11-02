@@ -7,11 +7,9 @@ import { useNavigation } from '../context/NavigationContext';
 import {
   ClaimEveryYearDisclaimers,
   ClaimSomeYearsDisclaimers,
-  DeferDisclaimers,
 } from './taxExemptions/TaxExemptionDisclaimers';
 import './Page.css';
 import './TaxExemptions.css';
-import Checkbox from '../components/forms/Checkbox';
 import RadioButton from '../components/forms/RadioButton';
 import FlagButton from '../components/forms/FlagButton';
 import { useSectionFlag } from '../hooks/useSectionFlag';
@@ -65,16 +63,33 @@ const PARENT_ROLE_OPTIONS = [
 // NOTE: ChildTaxBlock has conditional sub-questions and disclaimer components
 // that don't map cleanly to RadioQuestion, so it keeps its hand-rolled structure.
 
-function ChildTaxBlock({ childName, childIndex, childData = {}, parentRole, onUpdate, errors = {}, isFlagged, onToggleFlag }) {
+function ChildTaxBlock({
+  childName,
+  childIndex,
+  childData = {},
+  parentRole,
+  isParent2,
+  onUpdate,
+  errors = {},
+  isFlagged,
+  onToggleFlag,
+}) {
   const intent      = childData.intent ?? '';
   const taxYears    = childData.taxYears ?? '';
+  const taxYearsOpposite = taxYears === 'odd' ? 'even' : 'odd';
+  const taxYearParent = childData.taxYearParent ?? '';
   const customYears = childData.customYears ?? '';
+  const coParentCustomYears = childData.coParentCustomYears ?? '';
 
-  const showTaxYearQuestion      = intent === 'someYears';
+  const isSomeYears = intent === 'parent1SomeYears' || intent === 'parent2SomeYears' || intent === 'someYears';
+  const showTaxYearQuestion      = isSomeYears;
   const showCustomYearInput      = showTaxYearQuestion && taxYears === 'custom';
-  const showEveryYearDisclaimers = intent === 'everyYear' && !!parentRole;
-  const showSomeYearsDisclaimers = intent === 'someYears' && !!taxYears && !!parentRole;
-  const showDeferDisclaimers     = intent === 'defer' && !!parentRole;
+  const showEveryYearDisclaimers = (intent === 'parent1EveryYear' || intent === 'parent2EveryYear' || intent === 'everyYear') && !!parentRole;
+  const showSomeYearsDisclaimers = isSomeYears && !!taxYears && !!parentRole;
+  const displayParent1 = isParent2 ? 'My co-parent' : 'I';
+  const displayParent2 = isParent2 ? 'I' : 'My co-parent';
+  const parent1Years = customYears;
+  const parent2Years = coParentCustomYears;
 
   const update = (payload) => onUpdate(childIndex, payload);
   const clearError = (field) => {
@@ -101,16 +116,16 @@ function ChildTaxBlock({ childName, childIndex, childData = {}, parentRole, onUp
       <Card>
         <CardHeader className="card-header-with-flag">
           <CardDescription className="card-heading-question-bold">
-            How will you claim {childName} on tax forms?
+            Who will claim {childName} on tax forms?
           </CardDescription>
           <FlagButton isFlagged={isFlagged} onClick={onToggleFlag} />
         </CardHeader>
         <CardContent>
           <div className="radio-group">
             {[
-              { value: 'everyYear', label: 'I will claim this child every year' },
-              { value: 'someYears', label: 'I will claim this child some years (alternating or specific years)' },
-              { value: 'defer',     label: 'I defer to my co-parent to claim this child' },
+              { value: 'parent1EveryYear', label: `${displayParent1} will claim this child every year` },
+              { value: 'parent2EveryYear', label: `${displayParent2} will claim this child every year` },
+              { value: 'someYears', label: 'The parents will split claiming this child per year' },
             ].map(({ value, label }) => (
               <RadioButton
                 key={value}
@@ -118,7 +133,13 @@ function ChildTaxBlock({ childName, childIndex, childData = {}, parentRole, onUp
                 value={value}
                 checked={intent === value}
                 onChange={() => {
-                  update({ intent: value, taxYears: '', customYears: '', errors: {} });
+                  update({
+                    intent: value,
+                    taxYears: '',
+                    customYears: '',
+                    coParentCustomYears: '',
+                    errors: {},
+                  });
                   clearError('intent');
                 }}
                 label={label}
@@ -135,7 +156,7 @@ function ChildTaxBlock({ childName, childIndex, childData = {}, parentRole, onUp
 
           {showTaxYearQuestion && (
             <div className="child-tax-block__subanswer">
-              <p className="parent-label">Which tax years will you claim {childName}?</p>
+              <p className="parent-label">State split years for {childName}</p>
               <div className="radio-group">
                 {TAX_YEAR_OPTIONS.map(({ value, label }) => (
                   <RadioButton
@@ -143,7 +164,10 @@ function ChildTaxBlock({ childName, childIndex, childData = {}, parentRole, onUp
                     name={`taxYears-${childIndex}`}
                     value={value}
                     checked={taxYears === value}
-                    onChange={() => { update({ taxYears: value, customYears: '' }); clearError('taxYears'); }}
+                    onChange={() => {
+                      update({ taxYears: value, taxYearParent: '', customYears: '', coParentCustomYears: '' });
+                      clearError('taxYears');
+                    }}
                     label={label}
                   />
                 ))}
@@ -152,21 +176,62 @@ function ChildTaxBlock({ childName, childIndex, childData = {}, parentRole, onUp
                 <p className="text-input__error-message">{errors.taxYears}</p>
               )}
 
+              {(taxYears === 'odd' || taxYears === 'even') && (
+                <>
+                  <p className="parent-label">Which parent will get {childName} for these years?</p>
+                  <div className="radio-group">
+                    {[
+                      { value: 'parent1', label: displayParent1 },
+                      { value: 'parent2', label: displayParent2 },
+                    ].map(({ value, label }) => (
+                      <RadioButton
+                        key={value}
+                        name={`taxYearParent-${childIndex}`}
+                        value={value}
+                        checked={taxYearParent === value}
+                        onChange={() => {
+                          update({ taxYearParent: value });
+                          clearError('taxYearParent');
+                        }}
+                        label={`${label} will get ${childName} for ${taxYears}-numbered years (${label === 'I' ? 'my co-parent' : 'I'} will claim the child in the ${taxYearsOpposite} years)`}
+                      />
+                    ))}
+                  </div>
+                  {errors.taxYearParent && (
+                    <p className="text-input__error-message">{errors.taxYearParent}</p>
+                  )}
+                </>
+              )}
+
               {showCustomYearInput && (
                 <div className="tax-custom-years">
                   <label className="parent-label" htmlFor={`customYears-${childIndex}`}>
-                    Enter the tax years you will claim (comma-separated)
+                    Enter the tax years {displayParent1} will claim (comma-separated)
                   </label>
                   <input
                     id={`customYears-${childIndex}`}
                     type="text"
                     className="tax-custom-years__input"
                     placeholder="e.g. 2025, 2027, 2029"
-                    value={customYears}
+                    value={parent1Years}
                     onChange={(e) => { update({ customYears: e.target.value }); clearError('customYears'); }}
                   />
                   {errors.customYears && (
                     <p className="text-input__error-message">{errors.customYears}</p>
+                  )}
+                  <label className="parent-label" htmlFor={`coParentCustomYears-${childIndex}`}>
+                    Enter the tax years {displayParent2} will claim (comma-separated)
+                  </label>
+                  <input
+                    id={`coParentCustomYears-${childIndex}`}
+                    type="text"
+                    className="tax-custom-years__input"
+                    placeholder="e.g. 2026, 2028, 2030"
+                    value={parent2Years}
+                    onChange={(e) => { update({ coParentCustomYears: e.target.value }); clearError('coParentCustomYears'); }}
+                  />
+                  {errors.coParentCustomYears && (
+                    <p className="text-input__error-message">{errors.coParentCustomYears}</p>
                   )}
                 </div>
               )}
@@ -177,9 +242,6 @@ function ChildTaxBlock({ childName, childIndex, childData = {}, parentRole, onUp
             </div>
           )}
 
-          {showDeferDisclaimers && (
-            <DeferDisclaimers parentRole={parentRole} />
-          )}
         </CardContent>
       </Card>
     </div>
@@ -187,7 +249,7 @@ function ChildTaxBlock({ childName, childIndex, childData = {}, parentRole, onUp
 }
 
 // ─── ChildTaxBlock wrapper for use in TaxExemptions ─────────────────────────────
-function ChildTaxBlockWrapper({ name, idx, childData, parentRole, updateChildAnswer }) {
+function ChildTaxBlockWrapper({ name, idx, childData, parentRole, isParent2, updateChildAnswer }) {
   const flag = useSectionFlag(`taxChild-${name}`);
   return (
     <ChildTaxBlock
@@ -195,6 +257,7 @@ function ChildTaxBlockWrapper({ name, idx, childData, parentRole, updateChildAns
       childIndex={idx}
       childData={childData}
       parentRole={parentRole}
+      isParent2={isParent2}
       onUpdate={(_, payload) => updateChildAnswer(name, payload)}
       errors={childData?.errors ?? {}}
       isFlagged={flag.isFlagged}
@@ -222,13 +285,15 @@ export default function TaxExemptions() {
   const formData         = state.taxExemptions ?? {};
   const errors           = formData.errors ?? {};
   const parentRole       = formData.parentRole ?? '';
+  const isParent2        = state.plan?.userRole
+    ? state.plan.userRole === 'parent2/petitioner2/defendant'
+    : state.plan?.isParent2 === true;
   const claimingChildren = formData.claimingChildren ?? [];
   const childAnswers     = formData.childAnswers ?? {};
 
 
   // ── Flag hooks ────────────────────────────────────────────────────────────
   const parentalRoleFlag     = useSectionFlag('taxParentalRole');
-  const claimingChildrenFlag = useSectionFlag('taxClaimingChildren');
 
   const allChildNames = children.map((c, i) =>
     `${c.fName ?? c.firstName ?? ''} ${c.lName ?? c.lastName ?? ''}`.trim() || `Child ${i + 1}`
@@ -236,6 +301,13 @@ export default function TaxExemptions() {
 
   // ── Sync: remove deleted children from claimingChildren and childAnswers ──
   useEffect(() => {
+    if (allChildNames.join('|') !== claimingChildren.join('|')) {
+      dispatch({
+        type: 'UPDATE_SECTION',
+        section: 'taxExemptions',
+        payload: { claimingChildren: allChildNames },
+      });
+    }
     const removedFromClaiming = claimingChildren.filter(name => !allChildNames.includes(name));
     const removedFromAnswers  = Object.keys(childAnswers).filter(name => !allChildNames.includes(name));
 
@@ -250,7 +322,7 @@ export default function TaxExemptions() {
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allChildNames.join(',')]);
+  }, [allChildNames.join(','), claimingChildren.join(',')]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -259,15 +331,6 @@ export default function TaxExemptions() {
 
   const clearError = (field) => {
     if (errors[field]) update({ errors: { ...errors, [field]: '' } });
-  };
-
-  const toggleChild = (name) => {
-    const next = claimingChildren.includes(name)
-      ? claimingChildren.filter(n => n !== name)
-      : [...claimingChildren, name];
-    const nextAnswers = { ...childAnswers };
-    if (claimingChildren.includes(name)) delete nextAnswers[name];
-    update({ claimingChildren: next, childAnswers: nextAnswers, errors: { ...errors, claimingChildren: '' } });
   };
 
   const updateChildAnswer = (childName, payload) => {
@@ -285,26 +348,35 @@ export default function TaxExemptions() {
   const validateForm = useCallback(() => {
     const current         = state.taxExemptions ?? {};
     const currentRole     = current.parentRole ?? '';
-    const currentClaiming = current.claimingChildren ?? [];
+    const currentClaiming = allChildNames;
     const currentAnswers  = current.childAnswers ?? {};
 
     const newErrors = {};
     if (!currentRole)
       newErrors.parentRole = 'Please indicate your parental role.';
     if (currentClaiming.length === 0)
-      newErrors.claimingChildren = 'Please select at least one child, or indicate you are not claiming any.';
+      newErrors.claimingChildren = 'No children were found in this plan.';
 
     const newChildAnswerErrors = { ...currentAnswers };
     currentClaiming.forEach(name => {
       const ans = currentAnswers[name] ?? {};
       const childErrors = {};
       if (!ans.intent) childErrors.intent = 'Please select an option for this child.';
-      if (ans.intent === 'someYears' && !ans.taxYears) childErrors.taxYears = 'Please select which tax years.';
-      if (ans.intent === 'someYears' && ans.taxYears === 'custom') {
+      const someYears = ['parent1SomeYears', 'parent2SomeYears', 'someYears'].includes(ans.intent);
+      if (someYears && !ans.taxYears) childErrors.taxYears = 'Please select which tax years.';
+      if (someYears && ['odd', 'even'].includes(ans.taxYears) && !ans.taxYearParent) {
+        childErrors.taxYearParent = 'Please select which parent will get the child for those years.';
+      }
+      if (someYears && ans.taxYears === 'custom') {
         if (!ans.customYears?.trim()) {
           childErrors.customYears = 'Please enter the specific tax years.';
         } else if (!isValidYearList(ans.customYears)) {
           childErrors.customYears = 'Please enter years as comma-separated 4-digit years (e.g. 2025, 2027, 2029).';
+        }
+        if (!ans.coParentCustomYears?.trim()) {
+          childErrors.coParentCustomYears = 'Please enter the specific tax years for your co-parent.';
+        } else if (!isValidYearList(ans.coParentCustomYears)) {
+          childErrors.coParentCustomYears = 'Please enter your co-parent’s years as comma-separated 4-digit years (e.g. 2026, 2028, 2030).';
         }
       }
       if (Object.keys(childErrors).length > 0)
@@ -321,9 +393,16 @@ export default function TaxExemptions() {
       currentClaiming.every(name => {
         const ans = currentAnswers[name] ?? {};
         if (!ans.intent) return false;
-        if (ans.intent === 'someYears' && !ans.taxYears) return false;
-        if (ans.intent === 'someYears' && ans.taxYears === 'custom') {
-          if (!ans.customYears?.trim() || !isValidYearList(ans.customYears)) return false;
+        const someYears = ['parent1SomeYears', 'parent2SomeYears', 'someYears'].includes(ans.intent);
+        if (someYears && !ans.taxYears) return false;
+        if (someYears && ['odd', 'even'].includes(ans.taxYears) && !ans.taxYearParent) return false;
+        if (someYears && ans.taxYears === 'custom') {
+          if (
+            !ans.customYears?.trim()
+            || !isValidYearList(ans.customYears)
+            || !ans.coParentCustomYears?.trim()
+            || !isValidYearList(ans.coParentCustomYears)
+          ) return false;
         }
         return true;
       });
@@ -388,11 +467,11 @@ export default function TaxExemptions() {
           <CardHeader>
             <CardTitle>Tax Exemptions</CardTitle>
             <CardDescription>
-              Decide who will claim tax exemptions for your children.
+              Decide which parent will claim each child for tax exemptions.
             </CardDescription>
           </CardHeader>
           <Disclaimer variant="info">
-              Each child can only be claimed by one parent on a tax return each year. Parents cannot both claim the same child or split the tax credit for that child.
+            Each child can only be claimed by one parent on a tax return each year. Assign each child to either parent below.
           </Disclaimer>
           <CardContent>
             <hr className="section-divider" />
@@ -426,37 +505,7 @@ export default function TaxExemptions() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="card-header-with-flag">
-                <CardDescription className="card-heading-question-bold">
-                  Which children will you claim as tax exemptions?
-                </CardDescription>
-                <FlagButton
-                  isFlagged={claimingChildrenFlag.isFlagged}
-                  onClick={claimingChildrenFlag.toggle}
-                />
-              </CardHeader>
-              <CardContent>
-                {allChildNames.length === 0 && (
-                  <p className="text-input__error-message">No children found in your plan. Please add children in the "Getting Started" section first.</p>
-                )}
-                <div className="checkbox-group">
-                  {allChildNames.map((name) => (
-                    <Checkbox
-                      key={name}
-                      label={name}
-                      checked={claimingChildren.includes(name)}
-                      onChange={() => toggleChild(name)}
-                    />
-                  ))}
-                </div>
-                {errors.claimingChildren && (
-                  <p className="text-input__error-message">{errors.claimingChildren}</p>
-                )}
-              </CardContent>
-            </Card>
-
-                        {claimingChildren.map((name) => {
+            {allChildNames.map((name) => {
               const idx = allChildNames.indexOf(name);
               return (
                 <ChildTaxBlockWrapper
@@ -465,6 +514,7 @@ export default function TaxExemptions() {
                   idx={idx}
                   childData={childAnswers[name]}
                   parentRole={parentRole}
+                  isParent2={isParent2}
                   updateChildAnswer={updateChildAnswer}
                 />
               );

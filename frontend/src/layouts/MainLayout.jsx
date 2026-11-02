@@ -171,6 +171,13 @@ export default function Layout({ children }) {
             section: "plan",
             payload: data
           })
+          dispatch({
+            type: 'UPDATE_SECTION',
+            section: 'parental_rights',
+            payload: {
+              responses: (data.answers ?? []).map(({ qKey, answer }) => ({ qKey, answer })),
+            },
+          })
         })
       })
     })
@@ -179,7 +186,6 @@ export default function Layout({ children }) {
   function questionnaireNext(idToken) {
     // update currentQuestion field in plan
     plan.currentQuestion = q._id
-
     // api call to set current question of plan to question just answered 
     fetch(buildApiUrl('api/plan/updateCurrent/' + plan._id + '/' + plan.currentQuestion), {
       method: "POST",
@@ -199,7 +205,7 @@ export default function Layout({ children }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({qKey: q.qKey, answer: answer})
+        body: JSON.stringify({qKey: q.qKey, answer})
       })
       .then( async (response) => {
         if (!response.ok) {
@@ -244,14 +250,16 @@ export default function Layout({ children }) {
       const pageValidationResult = await pageOnNext();
       if (pageValidationResult !== true) return;
     }
-    // prevent user from clicking next if answer is not selected
-    const hasValidQuestionAnswer = q?.type === 'text input' ? String(answer ?? '').trim().length > 0 : q?.options && q.options.findIndex(qAnswer => qAnswer.value === answer) >= 0;
+    const hasValidQuestionAnswer = q?.type === 'text input'
+        ? String(answer ?? '').trim().length > 0
+        : q?.options && q.options.findIndex(qAnswer => qAnswer.value === answer) >= 0;
     if (pageOrder[currentPageIndex] !== '/getting-started' && !hasValidQuestionAnswer) {
       return;
     }
+    const navigationAnswer = answer;
     const apiURL = pageOrder[currentPageIndex] === '/getting-started'
       ? '/api/logic-engine/question/allocation_parental_rights' // default starting question (probably change to const or something)
-: '/api/logic-engine/nextQuestion/' + encodeURIComponent(q.qKey) + '/' + encodeURIComponent(answer)
+: '/api/logic-engine/nextQuestion/' + encodeURIComponent(q.qKey) + '/' + encodeURIComponent(navigationAnswer)
     try {
       // get the next 'question' object
       const response = await fetch(buildApiUrl(apiURL));

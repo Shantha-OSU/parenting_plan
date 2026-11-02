@@ -343,9 +343,9 @@ export default function Dashboard() {
             <h2 className="dashboard__plans-title">Your Plans</h2>
             <div className="dashboard__plans-actions">
               {isAdmin && (
-                <Link className="dashboard__admin-btn" to="/admin/questions">
+                <Link className="dashboard__admin-btn" to="/admin">
                   <Lock size={16} />
-                  Edit questions
+                  Admin View
                 </Link>
               )}
               <button className="dashboard__new-plan-btn" onClick={handleNewPlan}>

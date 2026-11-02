@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { buildApiUrl } from '../lib/apiClient';
+import { auth } from '../lib/firebase';
 import './UserData.css';
 
 const fields = [
@@ -141,24 +142,35 @@ export default function UserData() {
   useEffect(() => {
     let isMounted = true;
 
-    fetch(buildApiUrl('api/aggregate-data'))
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to load aggregate user data');
+    const loadAggregateData = async () => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          throw new Error('Sign in with an administrator account to view aggregate data');
         }
 
-        return response.json();
-      })
-      .then((data) => {
+        const idToken = await currentUser.getIdToken();
+        const response = await fetch(buildApiUrl('api/aggregate-data'), {
+          headers: { Authorization: `Bearer ${idToken}` }
+        });
+        if (!response.ok) {
+          throw new Error(response.status === 403
+            ? 'Administrator access required'
+            : 'Failed to load aggregate user data');
+        }
+
+        const data = await response.json();
         if (!Array.isArray(data)) {
           throw new Error('Aggregate user data response must be a list');
         }
 
         if (isMounted) setUsers(data);
-      })
-      .catch((fetchError) => {
+      } catch (fetchError) {
         if (isMounted) setError(fetchError.message);
-      });
+      }
+    };
+
+    loadAggregateData();
 
     return () => {
       isMounted = false;
@@ -180,12 +192,6 @@ export default function UserData() {
 
   return (
     <main className="user-data">
-      <header className="user-data__header">
-        <p className="user-data__eyebrow">Community overview</p>
-        <h1>Aggregate data dashboard</h1>
-        <p>Explore the demographics and preferences represented in parenting plans.</p>
-      </header>
-
       <section className="user-data__metrics" aria-label="Summary statistics">
         <article className="user-data__metric-card">
           <span className="user-data__metric-label">Plans represented</span>

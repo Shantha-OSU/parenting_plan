@@ -26,7 +26,10 @@ const SCHEDULE_TYPES = {
   'parentingTimeAndCommunication.holidaySchedule': 'calendar',
   'parentingTimeAndCommunication.schoolSchedule': 'calendar',
 };
-const COMPARISON_ONLY_EXCLUDED_KEYS = new Set(['getting-started.children']);
+const COMPARISON_ONLY_EXCLUDED_KEYS = new Set([
+  'getting-started.children',
+  'taxExemptions.claimingChildren',
+]);
 const PRINT_ONLY_PERSONAL_INFO_KEYS = [
   'case.parent1Name',
   'case.parent2Name',
@@ -178,6 +181,7 @@ export default function Comparison() {
   const [diff, setDiff] = useState([]);
   const [caseStatus, setCaseStatus] = useState('');
   const [isParent1, setIsParent1] = useState(false);
+  const [userRole, setUserRole] = useState('');
   const [parentNames, setParentNames] = useState({ parent1: 'Parent 1', parent2: 'Parent 2' });
   const [sharedAnswers, setSharedAnswers] = useState({});
   const [questionMap, setQuestionMap] = useState({});
@@ -235,6 +239,7 @@ export default function Comparison() {
         const parent1 = statusData.isParent1;
         setCaseStatus(status);
         setIsParent1(parent1);
+        setUserRole(statusData.userRole || '');
         setParentNames({
           parent1: statusData.parent1Name || 'Parent 1',
           parent2: statusData.parent2Name || 'Parent 2',
@@ -285,8 +290,8 @@ export default function Comparison() {
             Object.entries(CUSTOM_COMPARISON_QUESTIONS).map(([qKey, question]) => [
               qKey,
               SCHEDULE_TYPES[qKey]
-                ? { ...question, scheduleType: SCHEDULE_TYPES[qKey] }
-                : question,
+                ? { ...question, qKey, scheduleType: SCHEDULE_TYPES[qKey] }
+                : { ...question, qKey },
             ]),
           );
           map['getting-started.children'] = {
@@ -297,6 +302,17 @@ export default function Comparison() {
           questions.forEach((q) => {
             if (q.qKey) map[q.qKey] = { ...map[q.qKey], ...q };
           });
+          if (map['taxExemptions.childAnswers']) {
+            map['taxExemptions.childAnswers'] = {
+              ...map['taxExemptions.childAnswers'],
+              qText: 'Tax exemption arrangements for each child',
+              childAnswers: true,
+            };
+          }
+          map.school_address_parent = {
+            ...map.school_address_parent,
+            ...CUSTOM_COMPARISON_QUESTIONS.school_address_parent,
+          };
           setQuestionMap(map);
         }
 
@@ -330,7 +346,30 @@ export default function Comparison() {
   const disagreed = diff.filter((d) => !d.agreement);
 
   const formatAnswer = (val, answerOwner, questionKey) => {
+    const annotateCurrentParent = (text) => {
+      if (typeof text !== 'string') return text;
+      const currentParent = isParent1 ? '2' : '1';
+      return text.replace(
+        new RegExp(`\\bParent ${currentParent}\\b(?! \\(you\\))`, 'g'),
+        `Parent ${currentParent} (you)`,
+      );
+    };
+
     if (val === null || val === undefined) return 'Not answered';
+    if (questionKey === 'school_address_parent' && typeof val === 'string') {
+      const owner = answerOwner || (isParent1 ? 'parent1' : 'parent2');
+      const schoolAddressParentLabels = {
+        parent1: owner === 'parent1' ? 'Just my address' : "Just my co-parent's address",
+        parent2: owner === 'parent2' ? 'Just my address' : "Just my co-parent's address",
+      };
+      const schoolAddressLabels = {
+        me: 'Just my address',
+        coParent: "Just my co-parent's address",
+        defaultToCoParent: "Default to my co-parent's address",
+        needMoreInfo: 'I need more information',
+      };
+      return annotateCurrentParent(schoolAddressLabels[val] || schoolAddressParentLabels[val] || val);
+    }
     if (typeof val === 'string' && answerOwner) {
       if (['me', 'meOnly'].includes(val)) return 'Just me';
       if (['coParent', 'coParentOnly'].includes(val)) return 'Just my co-parent';
@@ -339,12 +378,15 @@ export default function Comparison() {
     }
     if (Array.isArray(val)) return val.map((value) => formatAnswer(value, answerOwner, questionKey)).join(', ');
     if (questionMap[questionKey]?.childAnswers) {
-      return answerText(val, questionMap[questionKey]);
+      const answeringParent = userRole === 'no_case'
+        ? 'no_case'
+        : answerOwner || (isParent1 ? 'parent1' : 'parent2');
+      return annotateCurrentParent(answerText(val, questionMap[questionKey], answeringParent, true));
     }
-    if (val && typeof val === 'object') return JSON.stringify(val);
+    if (val && typeof val === 'object') return annotateCurrentParent(JSON.stringify(val));
     const option = questionMap[questionKey]?.options?.find((item) => item.value === val);
-    if (option?.label) return option.label;
-    return String(val);
+    if (option?.label) return annotateCurrentParent(option.label);
+    return annotateCurrentParent(String(val));
   };
 
   const renderAnswer = (value, answerOwner, questionKey, parent1Value, parent2Value) => (
@@ -440,7 +482,7 @@ export default function Comparison() {
       <div className="comparison comparison--centered">
         <AlertTriangle size={40} color="#f97316" />
         <p className="comparison__error">{error}</p>
-        <button className="comparison__back-btn" onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+        <button className="comparison__back-btn" onClick={() => navigate('/review')}>Back to Review</button>
       </div>
     );
   }
@@ -451,7 +493,7 @@ export default function Comparison() {
         <Users size={48} color="#14abdd" />
         <h2>Waiting for Co-parent</h2>
         <p>Your co-parent hasn't joined yet. Once they accept the invite, you'll see the comparison here.</p>
-        <button className="comparison__back-btn" onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+        <button className="comparison__back-btn" onClick={() => navigate('/review')}>Back to Review</button>
       </div>
     );
   }
@@ -475,8 +517,17 @@ export default function Comparison() {
         .map((qKey) => ({ qKey, answer: sharedAnswers[qKey] })),
     ].map(({ qKey, answer }) => {
       const item = { qKey, answer };
-      if (!SCHEDULE_KEYS.has(item.qKey)) return item;
       const difference = diff.find((entry) => entry.questionKey === item.qKey);
+      if (needsDiscussionKeys.has(item.qKey)) {
+        return {
+          ...item,
+          parentAnswers: {
+            parent1: difference?.parent1Answer,
+            parent2: difference?.parent2Answer,
+          },
+        };
+      }
+      if (!SCHEDULE_KEYS.has(item.qKey)) return item;
       return {
         ...item,
         answer: {
@@ -491,8 +542,8 @@ export default function Comparison() {
       <>
       <div className="comparison">
         <div className="comparison__header">
-          <button className="comparison__nav-back" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft size={18} /> Dashboard
+          <button className="comparison__nav-back" onClick={() => navigate('/review')}>
+            <ArrowLeft size={18} /> Review
           </button>
           <div>
             <h1 className="comparison__title">Final Parenting Plan Comparison</h1>
@@ -616,6 +667,7 @@ export default function Comparison() {
               : question,
           ]))}
           needsDiscussionKeys={needsDiscussionKeys}
+          parentNames={parentNames}
         />
       )}
       </>
@@ -626,8 +678,8 @@ export default function Comparison() {
   return (
     <div className="comparison">
       <div className="comparison__header">
-        <button className="comparison__nav-back" onClick={() => navigate('/dashboard')}>
-          <ArrowLeft size={18} /> Dashboard
+        <button className="comparison__nav-back" onClick={() => navigate('/review')}>
+          <ArrowLeft size={18} /> Review
         </button>
         <div>
           <h1 className="comparison__title">Parenting Plan Comparison</h1>

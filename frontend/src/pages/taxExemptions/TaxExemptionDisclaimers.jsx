@@ -6,7 +6,7 @@ import Disclaimer from '../../components/forms/Disclaimer';
 
 export const INTENT_OPTIONS = [
   { value: 'everyYear', label: 'Yes, I plan to claim my child(ren) for each tax year going forward' },
-  { value: 'someYears', label: 'Yes, I plan to claim my child(ren) for some tax years going forward' },
+  { value: 'someYears', label: 'Yes, I plan to split tax years for my child(ren) going forward' },
   { value: 'noClaim',   label: "No, I don't plan to claim my child(ren) for each tax year going forward" },
   { value: 'needInfo',  label: 'I need more information' },
   { value: 'defer',     label: 'Defer to my co-parent' },
@@ -54,7 +54,7 @@ export function ClaimEveryYearDisclaimers({ parentRole }) {
   );
 }
 
-// ─── 6.c disclaimers — claim some years ──────────────────────────────────────
+// ─── 6.c disclaimers — split tax years ───────────────────────────────────────
 
 export function ClaimSomeYearsDisclaimers({ taxYears, parentRole }) {
   if (!taxYears || !parentRole) return null;

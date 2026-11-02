@@ -215,6 +215,7 @@ describe('ParentalRights', () => {
         document.querySelector(`input[name="${mockQuestion.qKey}"][value="yes"]`)
       ).toBeChecked()
     })
+
   })
 
   // ─── Footer Navigation ───────────────────────────────────────────────────────

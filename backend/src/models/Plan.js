@@ -127,7 +127,7 @@ const planSchema = new mongoose.Schema(
   },
   userRole: {
     type: String,
-    enum: ['parent1/petitioner1/plaintiff', 'parent2/petitioner2/defendant', 'flagged', 'defer', ''],
+    enum: ['parent1/petitioner1/plaintiff', 'parent2/petitioner2/defendant', 'no_case', 'flagged', 'defer', ''],
     default: ''
   },
   residentialParent: {

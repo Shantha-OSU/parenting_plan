@@ -126,7 +126,11 @@ export default function GettingStarted() {
   };
 
   const handleFormChange = (section, field) => (value) => {
-    dispatch({ type: 'UPDATE_SECTION', section: section, payload: { [field]: value } });
+    const payload = { [field]: value };
+    if (section === 'plan' && field === 'userRole') {
+      payload.isParent2 = value === 'parent2/petitioner2/defendant';
+    }
+    dispatch({ type: 'UPDATE_SECTION', section: section, payload });
     if (errors[field]) {
       dispatch({ type: 'UPDATE_SECTION', section: section, payload: { errors: { ...errors, [field]: '' } } });
     }

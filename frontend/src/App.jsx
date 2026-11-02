@@ -20,7 +20,7 @@ import WaitingScreen from './pages/WaitingScreen';
 import ResolutionReview from './pages/ResolutionReview';
 import AdminQuestionEditor from './pages/AdminQuestionEditor';
 import FinalResolution from './pages/FinalResolution';
-import UserData from './pages/UserData';
+import AdminView from './pages/AdminView';
 import FormDesigner from './pages/FormDesigner';
 import { FormProvider } from './context/FormContext';
 import { NavigationProvider } from './context/NavigationContext';
@@ -42,6 +42,7 @@ function App() {
 
         {/* Dashboard (no sidebar) */}
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/admin" element={<AdminView />} />
         <Route path="/admin/questions" element={<AdminQuestionEditor />} />
 
             {/* Form routes with sidebar */}
@@ -71,7 +72,7 @@ function App() {
               </MainLayout>
             } />
             <Route path="/aggregate-data" element={
-              <UserData />
+              <AdminView />
             } />
             <Route path="/review" element={
               <MainLayout>
@@ -79,9 +80,7 @@ function App() {
               </MainLayout>
             } />
             <Route path="/form-designer" element={
-              <MainLayout>
-                <FormDesigner />
-              </MainLayout>
+              <FormDesigner />
             } />
             
             {/* Static pages */}

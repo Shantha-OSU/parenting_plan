@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, GripVertical, Plus, Printer, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, GripVertical, Plus, Printer, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useForm } from '../hooks/useForm';
 import { buildApiUrl } from '../lib/apiClient';
@@ -80,16 +81,45 @@ function canonicalScheduleKey(qKey) {
   return SCHEDULE_QKEYS[field] || qKey;
 }
 
-export function answerText(answer, question) {
+export function answerText(answer, question, answeringParent, relativeLabels = false, pdfLabels = false) {
   if (answer === null || answer === undefined || answer === '') return 'Not answered';
   if (question?.childDetails) {
     return formatChildDetails(answer);
   }
+  if (pdfLabels && question?.qKey === 'school_address_parent' && typeof answer === 'string') {
+    const parentLabel = answeringParent === 'parent2'
+      ? 'Parent 2'
+      : answeringParent === 'no_case' ? 'Me' : 'Parent 1';
+    const coParentLabel = answeringParent === 'parent2'
+      ? 'Parent 1'
+      : answeringParent === 'no_case' ? 'Co-parent' : 'Parent 2';
+    const labels = {
+      me: `${parentLabel === 'Me' ? 'me' : `${parentLabel}'s`} address`,
+      coParent: `${coParentLabel === 'Co-parent' ? 'my co-parent\'s' : `${coParentLabel}'s`} address`,
+      defaultToCoParent: `Default to ${coParentLabel === 'Co-parent' ? 'my co-parent\'s' : `${coParentLabel}'s`} address`,
+      needMoreInfo: 'I need more information',
+      parent1: "Parent 1's address",
+      parent2: "Parent 2's address",
+    };
+    return labels[answer] || answer;
+  }
   if (question?.childAnswers) {
+    const parent1Label = relativeLabels
+      ? answeringParent === 'parent2' ? 'My co-parent' : 'I'
+      : answeringParent === 'no_case' ? 'I' : 'Parent 1';
+    const parent2Label = relativeLabels
+      ? answeringParent === 'parent2' ? 'I' : 'My co-parent'
+      : answeringParent === 'no_case' ? 'Co-parent' : 'Parent 2';
     const intentLabels = {
       everyYear: 'Claim every year',
       someYears: 'Claim some years',
       defer: 'Defer to co-parent',
+      parent1EveryYear: `${parent1Label} will claim every year`,
+      parent1SomeYears: parent1Label,
+      parent2EveryYear: `${parent2Label} will claim every year`,
+      parent2SomeYears: parent2Label,
+      parent1: parent1Label,
+      parent2: parent2Label,
     };
     const yearLabels = {
       odd: 'Odd-numbered tax years',
@@ -100,17 +130,51 @@ export function answerText(answer, question) {
     const lines = Object.entries(answer).flatMap(([child, details]) => {
       if (!details || typeof details !== 'object') return [`${child}: ${details}`];
       const arrangement = intentLabels[details.intent] || details.intent || 'No arrangement entered';
+      const currentIsParent2 = details.userIsParent2 ?? answeringParent === 'parent2';
+      const currentParent = currentIsParent2 ? parent2Label : parent1Label;
+      const coParent = currentIsParent2 ? parent1Label : parent2Label;
+      const explicitClaimant = details.claimantParent
+        || details.taxYearParent
+        || (details.intent?.startsWith('parent1') ? 'parent1' : null)
+        || (details.intent?.startsWith('parent2') ? 'parent2' : null);
+      const claimantParent = explicitClaimant === 'parent1'
+        ? parent1Label
+        : explicitClaimant === 'parent2'
+          ? parent2Label
+          : currentParent;
+      const otherParentNumber = claimantParent === parent1Label ? parent2Label : parent1Label;
       const years = details.taxYears === 'custom'
-        ? details.customYears
+        ? `${claimantParent} will claim: ${details.customYears || 'Not entered'}; ${otherParentNumber} will claim: ${details.coParentCustomYears || 'Not entered'}`
+        : details.taxYears === 'odd'
+          ? `${claimantParent} will claim: Odd-numbered tax years; ${otherParentNumber} will claim: Even-numbered tax years`
+          : details.taxYears === 'even'
+            ? `${claimantParent} will claim: Even-numbered tax years; ${otherParentNumber} will claim: Odd-numbered tax years`
         : yearLabels[details.taxYears] || details.taxYears;
-      return [`${child}: ${[arrangement, years].filter(Boolean).join(' — ')}`];
+      const isSomeYearsArrangement = ['parent1SomeYears', 'parent2SomeYears', 'someYears'].includes(details.intent);
+      return [`${child}: ${[isSomeYearsArrangement ? '' : arrangement, years].filter(Boolean).join(' — ')}`];
     });
     return lines.length ? lines.join('\n') : 'No child arrangements entered';
   }
   if (question?.scheduleType) {
     return formatSchedule(answer, question.scheduleType);
   }
-  const value = (item) => question?.options?.find((option) => option.value === item)?.label || String(item);
+  const value = (item) => {
+    const label = question?.options?.find((option) => option.value === item)?.label || String(item);
+    if (!answeringParent) return label;
+    const parent = answeringParent === 'parent2' ? 'Parent 2'
+      : answeringParent === 'no_case' ? 'Myself' : 'Parent 1';
+    const coParent = answeringParent === 'parent2' ? 'Parent 1'
+      : answeringParent === 'no_case' ? 'Co-parent' : 'Parent 2';
+    return label
+      .replace(/\bMe and my co-parent\b/g, `${parent} and ${coParent}`)
+      .replace(/\bMe and my coparent\b/g, `${parent} and ${coParent}`)
+      .replace(/\bJust me\b/g, parent)
+      .replace(/\bJust my co-parent(?:'s)?\b/g, coParent)
+      .replace(/\bmy co-parent\b/gi, coParent)
+      .replace(/\bme\b/gi, parent)
+      .replace(/\bcoparent\b/gi, coParent)
+      .replace(/\bmine\b/gi, parent + "'s");
+  };
   return Array.isArray(answer) ? answer.map(value).join(', ') : value(answer);
 }
 
@@ -203,7 +267,8 @@ function formatSchedule(answer, scheduleType) {
 }
 
 function ScheduleCalendar({ schedule = {} }) {
-  const hasSlots = Object.values(schedule).some((slots) => Array.isArray(slots) && slots.length);
+  const safeSchedule = schedule && typeof schedule === 'object' ? schedule : {};
+  const hasSlots = Object.values(safeSchedule).some((slots) => Array.isArray(slots) && slots.length);
   if (!hasSlots) return <span>Not scheduled</span>;
 
   return (
@@ -217,7 +282,7 @@ function ScheduleCalendar({ schedule = {} }) {
           <span className="form-designer__schedule-week-label">Week {week + 1}</span>
           {WEEK_DAYS.map((day, dayOfWeek) => {
             const dayIndex = week * 7 + dayOfWeek;
-            const slots = Array.isArray(schedule[dayIndex]) ? schedule[dayIndex] : [];
+            const slots = Array.isArray(safeSchedule[dayIndex]) ? safeSchedule[dayIndex] : [];
             return (
               <div
                 className={`form-designer__schedule-day-cell${slots.length ? ' form-designer__schedule-day-cell--assigned' : ''}`}
@@ -348,7 +413,9 @@ function questionPageLabel(question) {
 
 function shouldShowQuestionLabel(question) {
   const section = String(question.section || String(question.qKey || '').split('.')[0]).toLowerCase();
-  return section === 'parental-rights' || section === 'health-insurance-coverage';
+  return section === 'parental-rights'
+    || section === 'health-insurance-coverage'
+    || section === 'informationsharing';
 }
 
 function questionLabel(question) {
@@ -394,6 +461,14 @@ const customFieldLabels = {
 };
 
 const customOptionValues = {
+  agreeToTransportationPolicy: {
+    true: 'I agree to the standard transportation policy',
+    false: 'I do not agree with the standard transportation policy',
+  },
+  agreeToActivityPolicy: {
+    true: 'I agree to the standard activity policy',
+    false: 'I do not agree with the standard activity policy',
+  },
   communicationWithCoParentOnPhone: {
     yes: 'Yes',
     no: 'No',
@@ -486,7 +561,10 @@ export function collectAnswers(state, questions, caseParentNames = {}) {
       ) return;
       const valueMap = customOptionValues[key];
       const options = valueMap
-        ? Object.entries(valueMap).map(([value, label]) => ({ value, label }))
+        ? Object.entries(valueMap).map(([value, label]) => ({
+          value: value === 'true' ? true : value === 'false' ? false : value,
+          label,
+        }))
         : [];
       responses.push({
         qKey: `${questionSection}.${key}`,
@@ -572,12 +650,16 @@ export function collectAnswers(state, questions, caseParentNames = {}) {
   );
   addFields(state.taxExemptions, 'Tax Exemptions', {
     parentRole: 'Parental role',
-    claimingChildren: 'Children claimed for tax exemptions',
   }, 'taxExemptions');
   if (state.taxExemptions?.childAnswers && Object.keys(state.taxExemptions.childAnswers).length) {
     responses.push({
       qKey: 'taxExemptions.childAnswers',
-      answer: state.taxExemptions.childAnswers,
+      answer: Object.fromEntries(
+        Object.entries(state.taxExemptions.childAnswers).map(([name, details]) => [
+          name,
+          { ...details, userIsParent2: state.plan?.isParent2 === true },
+        ]),
+      ),
       isFlagged: isAnswerFlagged('taxExemptions.childAnswers', flags),
       section: 'Tax Exemptions',
       label: 'Tax exemption arrangements for each child',
@@ -721,12 +803,15 @@ export function FormTemplatePrintDocument({
   answersByKey,
   questions,
   needsDiscussionKeys,
+  parentNames = { parent1: 'Parent 1', parent2: 'Parent 2' },
+  answeringParent = null,
+  showUnanswered = false,
 }) {
   return (
     <div className="form-designer__template-print form-designer__canvas form-designer__canvas--blank">
       <div className="form-designer__print-title">{template.title}</div>
       {template.blocks.map((block) => {
-        const response = answersByKey[block.qKey];
+        const response = answersByKey[block.qKey] || (showUnanswered ? { answer: null } : null);
         const question = questions[block.qKey] || response?.question;
         if (block.type === 'heading') {
           return (
@@ -742,7 +827,7 @@ export function FormTemplatePrintDocument({
             </div>
           );
         }
-        if (!response || !hasAnswer(response.answer)) return null;
+        if (!response || (!showUnanswered && !hasAnswer(response.answer))) return null;
         return (
           <div className="form-designer__block form-designer__block--answer" key={block.id}>
             {response.isFlagged && (
@@ -752,10 +837,24 @@ export function FormTemplatePrintDocument({
               <div className="form-designer__discussion-notice">Needs discussion</div>
             )}
             <div className="form-designer__print-text">{block.questionText}</div>
-            <div className="form-designer__answer-value">
-              {renderScheduleAnswer(block.qKey, response.answer, question)
-                || answerText(response.answer, question)}
-            </div>
+            {needsDiscussionKeys?.has(block.qKey) && response.parentAnswers ? (
+              <div className="form-designer__discussion-answers">
+                {['parent1', 'parent2'].map((parent) => (
+                  <div className="form-designer__discussion-answer" key={parent}>
+                    <strong>{parentNames[parent]}'s answer</strong>
+                    <div className="form-designer__answer-value">
+                      {renderScheduleAnswer(block.qKey, response.parentAnswers[parent], question)
+                        || answerText(response.parentAnswers[parent], question, parent, false, true)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="form-designer__answer-value">
+                {renderScheduleAnswer(block.qKey, response.answer, question)
+                  || answerText(response.answer, question, response.answerOwner || answeringParent, false, true)}
+              </div>
+            )}
           </div>
         );
       })}
@@ -765,6 +864,7 @@ export function FormTemplatePrintDocument({
 
 export default function FormDesigner() {
   const { state } = useForm();
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState({});
   const [selectedFormat, setSelectedFormat] = useState('review');
   const [template, setTemplate] = useState(() => loadTemplate('review'));
@@ -777,11 +877,14 @@ export default function FormDesigner() {
   }));
   const [draggedToken, setDraggedToken] = useState(null);
   const [selectedPalettePage, setSelectedPalettePage] = useState('Getting Started');
+  const [questionSearch, setQuestionSearch] = useState('');
+  const [canvasPage, setCanvasPage] = useState(0);
 
   const changeFormat = (event) => {
     const format = event.target.value;
     setSelectedFormat(format);
     setTemplate(loadTemplate(format));
+    setCanvasPage(0);
     setSeededFormats((current) => ({
       ...current,
       [format]: Boolean(localStorage.getItem(templateStorageKey(format))),
@@ -791,12 +894,16 @@ export default function FormDesigner() {
   useEffect(() => {
     if (!isPrinting) return undefined;
 
-    const printTimer = setTimeout(() => {
+    const handleAfterPrint = () => setIsPrinting(false);
+    window.addEventListener('afterprint', handleAfterPrint);
+    const printFrame = window.requestAnimationFrame(() => {
       window.print();
-      setIsPrinting(false);
-    }, 0);
+    });
 
-    return () => clearTimeout(printTimer);
+    return () => {
+      window.cancelAnimationFrame(printFrame);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
   }, [isPrinting]);
 
   useEffect(() => {
@@ -904,15 +1011,24 @@ export default function FormDesigner() {
     )),
     [questions, template.blocks],
   );
+  const filteredQuestions = useMemo(() => {
+    const search = questionSearch.trim().toLowerCase();
+    if (!search) return availableQuestions;
+    return availableQuestions.filter((question) => [
+      questionLabel(question),
+      questionDisplayText(question),
+      question.qKey,
+    ].some((value) => String(value || '').toLowerCase().includes(search)));
+  }, [availableQuestions, questionSearch]);
   const questionGroups = useMemo(() => {
     const groups = new Map();
-    availableQuestions.forEach((question) => {
+    filteredQuestions.forEach((question) => {
       const label = questionPageLabel(question);
       if (!groups.has(label)) groups.set(label, []);
       groups.get(label).push(question);
     });
     return [...groups.entries()];
-  }, [availableQuestions]);
+  }, [filteredQuestions]);
   const palettePages = useMemo(
     () => [...questionGroups.map(([page]) => page), 'Personal info'],
     [questionGroups],
@@ -977,6 +1093,33 @@ export default function FormDesigner() {
     blocks: current.blocks.filter((block) => block.id !== id),
   }));
 
+  const canvasPages = useMemo(() => {
+    const pages = [[]];
+    let answerCount = 0;
+
+    template.blocks.forEach((block, index) => {
+      if (block.type === 'answer') {
+        const pageIndex = Math.floor(answerCount / 5);
+        while (pages.length <= pageIndex) pages.push([]);
+        pages[pageIndex].push({ block, index });
+        answerCount += 1;
+        return;
+      }
+
+      const currentPage = Math.max(0, Math.ceil(answerCount / 5) - 1);
+      while (pages.length <= currentPage) pages.push([]);
+      pages[currentPage].push({ block, index });
+    });
+
+    return pages;
+  }, [template.blocks]);
+
+  useEffect(() => {
+    setCanvasPage((current) => Math.min(current, Math.max(0, canvasPages.length - 1)));
+  }, [canvasPages.length]);
+
+  const visibleCanvasBlocks = canvasPages[canvasPage] ?? [];
+
   const setAsStandard = async () => {
     setStandardStatus('saving');
     try {
@@ -1011,6 +1154,9 @@ export default function FormDesigner() {
             <h1>Form Designer</h1>
             <p>Create a document, then add questions and answers from the palette.</p>
           </div>
+          <button className="form-designer__print" onClick={() => navigate('/admin')}>
+            <ArrowLeft size={16} /> Back to admin
+          </button>
           <label className="form-designer__scenario">
             PDF format
             <select value={selectedFormat} onChange={changeFormat}>
@@ -1034,6 +1180,15 @@ export default function FormDesigner() {
             <h2>Document text</h2>
             <button onClick={addHeading}><Plus size={15} /> Add section heading</button>
             <button onClick={addText}><Plus size={15} /> Add question text</button>
+            <label className="form-designer__question-search">
+              Search questions
+              <input
+                type="search"
+                value={questionSearch}
+                onChange={(event) => setQuestionSearch(event.target.value)}
+                placeholder="Search labels or question text"
+              />
+            </label>
             <h2>Pages</h2>
             <div className="form-designer__page-tabs" role="tablist" aria-label="Question pages">
               {palettePages.map((page) => (
@@ -1071,6 +1226,9 @@ export default function FormDesigner() {
             )}
             {availableQuestions.length === 0 && selectedPalettePage !== 'Personal info' && (
               <p className="form-designer__empty">All questions are placed.</p>
+            )}
+            {availableQuestions.length > 0 && filteredQuestions.length === 0 && (
+              <p className="form-designer__empty">No questions match your search.</p>
             )}
             {selectedPalettePage === 'Personal info' && (
               <>
@@ -1111,8 +1269,25 @@ export default function FormDesigner() {
               onChange={(event) => setTemplate((current) => ({ ...current, title: event.target.value }))}
               aria-label="Document title"
             />
+            <div className="form-designer__canvas-pagination" aria-label="Document pages">
+              <button
+                type="button"
+                onClick={() => setCanvasPage((current) => Math.max(0, current - 1))}
+                disabled={canvasPage === 0}
+              >
+                Previous
+              </button>
+              <span>Page {canvasPage + 1} of {canvasPages.length}</span>
+              <button
+                type="button"
+                onClick={() => setCanvasPage((current) => Math.min(canvasPages.length - 1, current + 1))}
+                disabled={canvasPage === canvasPages.length - 1}
+              >
+                Next
+              </button>
+            </div>
             <div className="form-designer__print-title">{template.title}</div>
-            {template.blocks.map((block, index) => (
+            {visibleCanvasBlocks.map(({ block, index }) => (
               <div
                 className={`form-designer__block form-designer__block--${block.type}${
                   block.type === 'answer' && !hasAnswer(currentAnswersByKey[block.qKey]?.answer)
@@ -1161,6 +1336,16 @@ export default function FormDesigner() {
         template={template}
         answersByKey={currentAnswersByKey}
         questions={questions}
+        answeringParent={
+          state.plan?.userRole === 'parent2/petitioner2/defendant'
+            ? 'parent2'
+            : state.plan?.userRole === 'no_case'
+              ? 'no_case'
+              : state.plan?.userRole === 'parent1/petitioner1/plaintiff'
+                ? 'parent1'
+                : null
+        }
+        showUnanswered
       />
     )}
     </>
