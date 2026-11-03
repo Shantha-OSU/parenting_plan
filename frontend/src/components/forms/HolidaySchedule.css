@@ -73,6 +73,15 @@
   grid-column: 1 / -1;
 }
 
+.holiday-schedule__details .holiday-schedule__field--start-time,
+.holiday-schedule__details .holiday-schedule__field--end-time {
+  grid-column: 2;
+}
+
+.holiday-schedule__details .holiday-schedule__field--end-time {
+  grid-row: 2;
+}
+
 .holiday-schedule__field {
   min-width: 0;
 }
@@ -230,6 +239,12 @@
 
   .holiday-schedule__details {
     grid-template-columns: 1fr;
+  }
+
+  .holiday-schedule__details .holiday-schedule__field--start-time,
+  .holiday-schedule__details .holiday-schedule__field--end-time {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .holiday-schedule__add-controls {

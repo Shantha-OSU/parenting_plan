@@ -41,6 +41,7 @@ export default function SchoolSchedule({ value = {}, onChange, errors = {} }) {
       timeDisabledItems={Object.keys(SCHOOL_DAY_OPTIONS)}
       yearFieldLabel="Year / day"
       descriptions={SCHOOL_DAY_DESCRIPTIONS}
+      showDropOffTime
     />
   );
 }

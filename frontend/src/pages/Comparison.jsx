@@ -101,6 +101,7 @@ function RegularScheduleGrid({ parent1Schedule = {}, parent2Schedule = {} }) {
 function formatCalendarDetails(details) {
   if (!details || typeof details !== 'object') return 'No preference entered';
   if (details.doesNotApply) return 'Does not apply';
+  if (details.applies === false) return 'No selection made';
   const yearLabels = {
     odd: 'Odd years',
     even: 'Even years',
@@ -109,6 +110,7 @@ function formatCalendarDetails(details) {
   const parts = [
     yearLabels[details.year] || details.year,
     formatTime(details.time),
+    details.dropOffTime ? `Drop-off ${formatTime(details.dropOffTime)}` : '',
     details.alternativeRequest,
   ].filter(Boolean);
   return parts.join(' · ') || 'No preference entered';
@@ -150,6 +152,43 @@ export function ScheduleAnswer({ questionKey, value, answerOwner, parent1Value, 
 
   if (!Object.keys(firstSchedule).length && !Object.keys(secondSchedule).length) {
     return <span className="comparison__answer-value">Not scheduled</span>;
+  }
+
+  if (firstSchedule.scheduleScope === 'byChild' || secondSchedule.scheduleScope === 'byChild') {
+    const childIds = [...new Set([
+      ...Object.keys(firstSchedule.schedulesByChild || {}),
+      ...Object.keys(secondSchedule.schedulesByChild || {}),
+    ])];
+    return (
+      <div className="comparison__child-schedules">
+        {childIds.map((childId, index) => {
+          const firstChild = firstSchedule.schedulesByChild?.[childId] || {};
+          const secondChild = secondSchedule.schedulesByChild?.[childId] || {};
+          const firstChildSchedule = firstChild.schedule || firstChild;
+          const secondChildSchedule = secondChild.schedule || secondChild;
+          return (
+            <section className="comparison__child-schedule" key={childId}>
+              <h4>{firstChild.childName || secondChild.childName || `Child ${index + 1}`}</h4>
+              {questionKey.endsWith('.parentingSchedule') ? (
+                <RegularScheduleGrid
+                  parent1Schedule={firstChildSchedule}
+                  parent2Schedule={secondChildSchedule}
+                />
+              ) : (
+                <HolidayScheduleComparison
+                  parent1Schedule={firstChildSchedule}
+                  parent2Schedule={secondChildSchedule}
+                />
+              )}
+            </section>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (firstSchedule.scheduleScope === 'later' || secondSchedule.scheduleScope === 'later') {
+    return <span className="comparison__answer-value">Schedule will be determined later</span>;
   }
 
   if (questionKey.endsWith('.parentingSchedule')) {

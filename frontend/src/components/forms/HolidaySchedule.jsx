@@ -39,6 +39,7 @@ const EMPTY_HOLIDAY = {
   doesNotApply: false,
   year: '',
   time: '',
+  dropOffTime: '',
   alternativeRequest: '',
 };
 
@@ -55,6 +56,7 @@ export default function HolidaySchedule({
   timeDisabledItems = [],
   yearFieldLabel = 'Year',
   descriptions = {},
+  showDropOffTime = true,
 }) {
   const [holidays, setHolidays] = useState(value);
   const [isAddingHoliday, setIsAddingHoliday] = useState(false);
@@ -117,7 +119,7 @@ export default function HolidaySchedule({
       <div className="holiday-schedule__items">
         {getHolidayNames(holidays, baseHolidays).map((holiday) => {
         const savedSelection = holidays[holiday] || {};
-        const hasLegacyDetails = Boolean(savedSelection.year || savedSelection.time || savedSelection.alternativeRequest);
+        const hasLegacyDetails = Boolean(savedSelection.year || savedSelection.time || savedSelection.dropOffTime || savedSelection.alternativeRequest);
         const legacyDoesNotApply = savedSelection.doesNotApply ?? savedSelection.year === 'na';
         const selection = {
           ...EMPTY_HOLIDAY,
@@ -194,14 +196,14 @@ export default function HolidaySchedule({
                 </span>
               )}
             </div>
-            <div className="holiday-schedule__field">
-              <label className="holiday-schedule__field-label" htmlFor={`${holidayId}-time`}>{timeDisabled ? 'Time' : 'Time (e.g. 6:00 PM)'}</label>
+            <div className="holiday-schedule__field holiday-schedule__field--start-time">
+              <label className="holiday-schedule__field-label" htmlFor={`${holidayId}-time`}>{timeDisabled ? 'Start time' : 'Start time (e.g. 6:00 PM)'}</label>
               {timeDisabled ? (
-                <span className="holiday-schedule__not-applicable" aria-label={`${holiday} time not applicable`}>N/A</span>
+                <span className="holiday-schedule__not-applicable" aria-label={`${holiday} start time not applicable`}>N/A</span>
               ) : (
                 <input
                   id={`${holidayId}-time`}
-                  aria-label={`${holiday} time`}
+                  aria-label={`${holiday} start time`}
                   type="text"
                   inputMode="text"
                   autoComplete="off"
@@ -222,6 +224,34 @@ export default function HolidaySchedule({
                 </span>
               )}
             </div>
+            {showDropOffTime && <div className="holiday-schedule__field holiday-schedule__field--end-time">
+              <label className="holiday-schedule__field-label" htmlFor={`${holidayId}-drop-off-time`}>{timeDisabled ? 'End time' : 'End time (e.g. 6:00 PM)'}</label>
+              {timeDisabled ? (
+                <span className="holiday-schedule__not-applicable" aria-label={`${holiday} end time not applicable`}>N/A</span>
+              ) : (
+                <input
+                  id={`${holidayId}-drop-off-time`}
+                  aria-label={`${holiday} end time`}
+                  type="text"
+                  inputMode="text"
+                  autoComplete="off"
+                  placeholder="6:00 PM"
+                  maxLength="8"
+                  pattern="(0?[1-9]|1[0-2]):[0-5][0-9] ?(AM|PM|am|pm)"
+                  value={selection.dropOffTime}
+                  disabled={selection.doesNotApply}
+                  required={!selection.doesNotApply && selection.year === 'every'}
+                  aria-invalid={Boolean(holidayErrors.dropOffTime)}
+                  aria-describedby={holidayErrors.dropOffTime ? `${holidayId}-drop-off-time-error` : undefined}
+                  onChange={(event) => updateHoliday(holiday, 'dropOffTime', event.target.value)}
+                />
+              )}
+              {holidayErrors.dropOffTime && (
+                <span className="holiday-schedule__error" id={`${holidayId}-drop-off-time-error`}>
+                  {holidayErrors.dropOffTime}
+                </span>
+              )}
+            </div>}
             <div className="holiday-schedule__field">
               <label className="holiday-schedule__field-label" htmlFor={`${holidayId}-alternative-request`}>Alternative requests</label>
               <textarea
