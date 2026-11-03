@@ -98,6 +98,8 @@ const CUSTOM_SECTION_FIELDS = {
       communicationWithCoParentOnPhoneDescription: 'Phone communication circumstances',
       notifyCoParentOfChildRelatedEvents: 'Notify co-parent about illness or injury',
       notifyCoParentOfChildRelatedEventsDescription: 'Illness or injury notification circumstances',
+      holidayGatheringAdults: 'Adults restricted from holiday gatherings',
+      holidayGatheringAdultsDetails: 'Restricted holiday-gathering adult name',
     },
   },
   informationSharing: {
@@ -141,6 +143,10 @@ const CUSTOM_FIELD_OPTIONS = {
     { value: 'sometimes', label: 'Sometimes (please describe)' },
     { value: 'needMoreInfo', label: 'I need more information' },
     { value: 'defaultToCoParentChoice', label: "Default to my co-parent's choice" },
+  ],
+  holidayGatheringAdults: [
+    { value: 'yes', label: 'Yes' },
+    { value: 'no', label: 'No' },
   ],
   medicalRecords: INFORMATION_SHARING_OPTIONS,
   schoolContact: INFORMATION_SHARING_OPTIONS,

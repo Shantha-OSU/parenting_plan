@@ -44,6 +44,7 @@ export default function ScheduleBuilder({
   const [recurrenceDays, setRecurrenceDays] = useState([]);
   const [recurrenceStartTime, setRecurrenceStartTime] = useState('');
   const [recurrenceEndTime, setRecurrenceEndTime] = useState('');
+  const [recurrenceParent, setRecurrenceParent] = useState('parent1');
   const [recurrenceWholeDay, setRecurrenceWholeDay] = useState(false);
   const [recurrenceError, setRecurrenceError] = useState('');
   const [slotError, setSlotError] = useState('');
@@ -74,6 +75,7 @@ export default function ScheduleBuilder({
     const dayIndex = getDayIndex(week, dayOfWeek);
     setSelectedDay({ week, dayOfWeek, dayIndex });
     setRecurrenceDays([dayOfWeek]);
+    setRecurrenceParent('parent1');
     setRecurrenceError('');
     setShowModal(true);
   };
@@ -190,7 +192,7 @@ export default function ScheduleBuilder({
     }
 
     const oneTimeSlot = {
-      parent: 'parent1',
+      parent: recurrenceParent,
       startTime: recurrenceWholeDay ? '' : recurrenceStartTime,
       endTime: recurrenceWholeDay ? '' : recurrenceEndTime,
       wholeDay: recurrenceWholeDay,
@@ -227,7 +229,7 @@ export default function ScheduleBuilder({
     }
 
     const recurringSlot = {
-      parent: 'parent1',
+      parent: recurrenceParent,
       startTime: recurrenceWholeDay ? '' : recurrenceStartTime,
       endTime: recurrenceWholeDay ? '' : recurrenceEndTime,
       wholeDay: recurrenceWholeDay,
@@ -287,7 +289,10 @@ export default function ScheduleBuilder({
           ? `${slot.startTime} - ${slot.endTime}`
           : 'No time set';
       return (
-        <div key={idx} className="schedule-builder__day-slot schedule-builder__day-slot--parent1">
+        <div key={idx} className={`schedule-builder__day-slot schedule-builder__day-slot--${slot.parent || 'parent1'}`}>
+          <div className="schedule-builder__day-slot-parent">
+            {(slot.parent || 'parent1') === 'parent2' ? parent2Label : parent1Label}
+          </div>
           <div className="schedule-builder__day-slot-time">{time}</div>
         </div>
       );
@@ -298,6 +303,7 @@ export default function ScheduleBuilder({
   const getStats = () => {
     const stats = {
       parent1Days: 0,
+      parent2Days: 0,
       splitDays: 0,
       unassignedDays: 0,
       total: 28
@@ -308,7 +314,8 @@ export default function ScheduleBuilder({
       if (!slots || slots.length === 0) {
         stats.unassignedDays++;
       } else if (slots.length === 1) {
-        stats.parent1Days++;
+        if ((slots[0].parent || 'parent1') === 'parent2') stats.parent2Days++;
+        else stats.parent1Days++;
       } else {
         stats.splitDays++;
       }
@@ -326,6 +333,10 @@ export default function ScheduleBuilder({
         <div className="schedule-builder__legend-item">
           <div className="schedule-builder__legend-color schedule-builder__legend-color--parent1"></div>
           <span>{parent1Label}</span>
+        </div>
+        <div className="schedule-builder__legend-item">
+          <div className="schedule-builder__legend-color schedule-builder__legend-color--parent2"></div>
+          <span>{parent2Label}</span>
         </div>
         <div className="schedule-builder__legend-item">
           <div className="schedule-builder__legend-color schedule-builder__legend-color--unassigned"></div>
@@ -377,6 +388,10 @@ export default function ScheduleBuilder({
           <span className="schedule-builder__stat-value">{stats.parent1Days}</span>
         </div>
         <div className="schedule-builder__stat">
+          <span className="schedule-builder__stat-label">{parent2Label} (full days):</span>
+          <span className="schedule-builder__stat-value">{stats.parent2Days}</span>
+        </div>
+        <div className="schedule-builder__stat">
           <span className="schedule-builder__stat-label">Split days:</span>
           <span className="schedule-builder__stat-value">{stats.splitDays}</span>
         </div>
@@ -421,6 +436,21 @@ export default function ScheduleBuilder({
                 {(schedule[selectedDay.dayIndex] || []).map((slot, idx) => (
                   <div key={idx} className="schedule-builder__time-slot">
                     <div className="schedule-builder__time-slot-controls">
+                      <div className="schedule-builder__field schedule-builder__field--full">
+                        <label className="schedule-builder__label" htmlFor={`slot-parent-${selectedDay.dayIndex}-${idx}`}>
+                          Parent responsible for this time
+                        </label>
+                        <select
+                          id={`slot-parent-${selectedDay.dayIndex}-${idx}`}
+                          className="schedule-builder__select"
+                          value={slot.parent || 'parent1'}
+                          onChange={(e) => updateTimeSlot(idx, 'parent', e.target.value)}
+                        >
+                          <option value="parent1">{parent1Label}</option>
+                          <option value="parent2">{parent2Label}</option>
+                        </select>
+                      </div>
+
                       {/* Whole day checkbox */}
                       <div className="schedule-builder__field schedule-builder__field--checkbox schedule-builder__field--full">
                         <label className="schedule-builder__checkbox-label">
@@ -490,7 +520,7 @@ export default function ScheduleBuilder({
                       value={recurrenceFrequency}
                       onChange={(event) => setRecurrenceFrequency(event.target.value)}
                     >
-                      <option value="none">Doesn't repeat (this day only)</option>
+                      <option value="none">Doesn&apos;t repeat (this day only)</option>
                       <option value="weekly">Every week</option>
                       <option value="biweekly">Every other week</option>
                     </select>
@@ -513,6 +543,18 @@ export default function ScheduleBuilder({
                       </div>
                     </div>
                   )}
+                  <div className="schedule-builder__field">
+                    <label className="schedule-builder__label" htmlFor="recurrence-parent">Parent responsible:</label>
+                    <select
+                      id="recurrence-parent"
+                      className="schedule-builder__select"
+                      value={recurrenceParent}
+                      onChange={(event) => setRecurrenceParent(event.target.value)}
+                    >
+                      <option value="parent1">{parent1Label}</option>
+                      <option value="parent2">{parent2Label}</option>
+                    </select>
+                  </div>
                   <div className="schedule-builder__field schedule-builder__field--checkbox">
                     <label className="schedule-builder__checkbox-label">
                       <input

@@ -53,6 +53,12 @@ router.post('/', verifyToken, async (req, res) => {
           plan.residentialParent = oppositeResidentialParent[p1Plan?.residentialParent] ?? p1Plan?.residentialParent ?? '';
           plan.parentingTimeAndCommunication = {
             parentingSchedule: p1Plan?.parentingTimeAndCommunication?.parentingSchedule ?? {},
+            holidaySchedule: p1Plan?.parentingTimeAndCommunication?.holidaySchedule ?? {},
+            schoolSchedule: p1Plan?.parentingTimeAndCommunication?.schoolSchedule ?? {},
+            scheduleScope: p1Plan?.parentingTimeAndCommunication?.scheduleScope ?? 'all',
+            parentingSchedulesByChild: p1Plan?.parentingTimeAndCommunication?.parentingSchedulesByChild ?? {},
+            holidaySchedulesByChild: p1Plan?.parentingTimeAndCommunication?.holidaySchedulesByChild ?? {},
+            schoolSchedulesByChild: p1Plan?.parentingTimeAndCommunication?.schoolSchedulesByChild ?? {},
           };
           await plan.save();
         }
