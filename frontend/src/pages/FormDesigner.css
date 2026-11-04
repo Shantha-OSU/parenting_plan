@@ -39,6 +39,8 @@ display: block; color: #425057; }
 .form-designer__print-title, .form-designer__print-text { display: none; }
 .form-designer__block { position: relative; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; padding: 1rem 3rem 1rem 1rem; margin-bottom: 0.75rem; }
 .form-designer__block textarea { width: 100%; min-height: 55px; box-sizing: border-box; resize: vertical; border: 1px solid #d1d5db; border-radius: 4px; padding: 0.5rem; font: inherit; }
+.form-designer__block textarea + .help-menu { margin-top: 0.5rem; }
+.form-designer__print-info { display: none; }
 .form-designer__block--heading {
   border-left: 5px solid #1bb0dd;
   background: #eefaff;
@@ -88,7 +90,7 @@ display: block; color: #425057; }
   body > #root, .layout, .layout__main, .layout__content { display: block !important; visibility: visible !important; width: 100% !important; max-width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
   .form-designer.page-container { display: none !important; }
   .sidebar, .header, .footer, .form-designer__header, .form-designer__palette, .form-designer__block-controls, .form-designer__drop-hint, .form-designer__print, .form-designer__title, .form-designer__block textarea, .form-designer__block label { display: none !important; }
-  .form-designer__print-title, .form-designer__print-text { display: block !important; white-space: pre-wrap; }
+  .form-designer__print-title, .form-designer__print-text, .form-designer__print-info { display: block !important; white-space: pre-wrap; }
   .form-designer__discussion-notice { display: block !important; margin-bottom: 0.3rem; font-weight: 700; }
   .form-designer__flagged-notice { display: block !important; margin-bottom: 0.3rem; font-weight: 700; }
   .form-designer__print-title { border-bottom: 3px solid #1bb0dd; padding: 0.5rem 0 0.65rem; margin-bottom: 1.25rem; font-size: 1.75rem; font-weight: 700; color: #263f49; }
@@ -103,6 +105,7 @@ display: block; color: #425057; }
   .form-designer__block--heading { border-left: 0; border-bottom: 2px solid #1bb0dd; background: #eefaff; padding: 0.55rem 0.7rem; margin-top: 1.25rem; }
   .form-designer__block--heading .form-designer__print-text { color: #16566b; font-size: 1.25rem; font-weight: 700; }
   .form-designer__print-text { font-weight: 700; }
+  .form-designer__print-info { margin: 0.35rem 0 0.5rem; padding: 0.4rem 0.6rem; border-left: 3px solid #14abdd; background: #e5e7eb; color: #374151; font-size: 9pt; font-weight: 400; }
   .form-designer__answer-value { padding-left: 0; font-weight: 400; }
   .form-designer__schedule-calendar,
   .form-designer__schedule-weekday-header,

@@ -5,6 +5,7 @@ const blockSchema = new mongoose.Schema({
   type: { type: String, enum: ['heading', 'text', 'answer'], required: true },
   qKey: { type: String },
   questionText: { type: String },
+  infoText: { type: String, default: '' },
   text: { type: String },
 }, { _id: false });
 

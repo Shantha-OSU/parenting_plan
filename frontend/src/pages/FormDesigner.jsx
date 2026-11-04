@@ -6,6 +6,7 @@ import { useForm } from '../hooks/useForm';
 import { buildApiUrl } from '../lib/apiClient';
 import { auth } from '../lib/firebase';
 import { CUSTOM_COMPARISON_QUESTIONS } from '../lib/comparisonQuestionDefinitions';
+import HelpMenu from '../components/common/HelpMenu';
 import './Page.css';
 import './FormDesigner.css';
 
@@ -432,6 +433,7 @@ function createToken(response, question) {
     type: 'answer',
     qKey: response.qKey,
     questionText: questionDisplayText(question || response),
+    infoText: question?.qIntro || response?.qIntro || '',
     section: response.section || '',
   };
 }
@@ -442,6 +444,7 @@ function createQuestionToken(question) {
     type: 'answer',
     qKey: question.qKey,
     questionText: questionDisplayText(question),
+    infoText: question.qIntro || '',
     section: question.section || 'Questionnaire',
   };
 }
@@ -730,9 +733,15 @@ function normalizeTemplate(saved, format) {
     layout: 'blank',
     blocks: saved.blocks
       .map((block) => (
-        block && SCHEDULE_QKEYS[String(block.qKey || '').split('.').pop()]
-          ? { ...block, qKey: canonicalScheduleKey(block.qKey) }
-          : block
+        block && {
+          ...block,
+          ...(SCHEDULE_QKEYS[String(block.qKey || '').split('.').pop()]
+            ? { qKey: canonicalScheduleKey(block.qKey) }
+            : {}),
+          ...(block.type === 'answer'
+            ? { infoText: typeof block.infoText === 'string' ? block.infoText : '' }
+            : {}),
+        }
       ))
       .filter((block) => (
       block &&
@@ -772,6 +781,9 @@ export function standardTemplate(format, answersByKey, questions) {
           || questions[response.qKey]?.qText
           || response.question?.qText
           || response.qKey,
+        infoText: questions[response.qKey]?.qIntro
+          || response.question?.qIntro
+          || '',
       })),
   ];
 
@@ -813,6 +825,7 @@ export function FormTemplatePrintDocument({
       {template.blocks.map((block) => {
         const response = answersByKey[block.qKey] || (showUnanswered ? { answer: null } : null);
         const question = questions[block.qKey] || response?.question;
+        const infoText = block.infoText || question?.qIntro || response?.question?.qIntro || '';
         if (block.type === 'heading') {
           return (
             <div className="form-designer__block form-designer__block--heading" key={block.id}>
@@ -854,6 +867,9 @@ export function FormTemplatePrintDocument({
                 {renderScheduleAnswer(block.qKey, response.answer, question)
                   || answerText(response.answer, question, response.answerOwner || answeringParent, false, true)}
               </div>
+            )}
+            {infoText && (
+              <div className="form-designer__print-info">{infoText}</div>
             )}
           </div>
         );
@@ -1306,6 +1322,13 @@ export default function FormDesigner() {
                     <label>Question text</label>
                     <textarea value={block.questionText} onChange={(event) => updateBlock(block.id, { questionText: event.target.value })} />
                     <div className="form-designer__print-text">{block.questionText}</div>
+                    <label htmlFor={`question-info-${block.id}`}>Additional information</label>
+                    <textarea
+                      id={`question-info-${block.id}`}
+                      value={block.infoText || ''}
+                      onChange={(event) => updateBlock(block.id, { infoText: event.target.value })}
+                      placeholder="Optional guidance or a link to a related form question"
+                    />
                     <label>Answer</label>
                     <div className="form-designer__answer-value">
                       {renderScheduleAnswer(
@@ -1317,6 +1340,8 @@ export default function FormDesigner() {
                         questions[block.qKey] || currentAnswersByKey[block.qKey]?.question,
                       )}
                     </div>
+                    <HelpMenu text={block.infoText} />
+                    <div className="form-designer__print-info">{block.infoText}</div>
                   </>
                 ) : (
                   <textarea value={block.text} onChange={(event) => updateBlock(block.id, { text: event.target.value })} />
