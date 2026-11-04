@@ -35,9 +35,11 @@ export function getHolidayNames(holidaySchedule = {}, baseHolidays = HOLIDAYS) {
 }
 
 const EMPTY_HOLIDAY = {
+  applies: false,
   doesNotApply: false,
   year: '',
   time: '',
+  dropOffTime: '',
   alternativeRequest: '',
 };
 
@@ -48,12 +50,13 @@ export default function HolidaySchedule({
   baseHolidays = HOLIDAYS,
   itemLabel = 'Holiday',
   ariaLabel = 'Holiday parenting schedule',
-  introText = 'Choose how each holiday should be handled. You can mark a holiday as not applicable, assign it to odd, even, or every year, and add any alternative request.',
+  introText = 'Choose whether each holiday applies. The schedule details will appear after you select “Applies”.',
   idPrefix = 'holiday',
   optionSets = {},
   timeDisabledItems = [],
   yearFieldLabel = 'Year',
   descriptions = {},
+  showDropOffTime = true,
 }) {
   const [holidays, setHolidays] = useState(value);
   const [isAddingHoliday, setIsAddingHoliday] = useState(false);
@@ -65,13 +68,23 @@ export default function HolidaySchedule({
   }, [value]);
 
   const updateHoliday = (holiday, field, fieldValue) => {
+    const currentHoliday = holidays[holiday] || {};
+    const nextSelection = {
+      ...EMPTY_HOLIDAY,
+      ...currentHoliday,
+      [field]: fieldValue,
+    };
+
+    if (field === 'applies' && fieldValue) {
+      nextSelection.doesNotApply = false;
+    }
+    if (field === 'doesNotApply' && fieldValue) {
+      nextSelection.applies = false;
+    }
+
     const nextHolidays = {
       ...holidays,
-      [holiday]: {
-        ...EMPTY_HOLIDAY,
-        ...(holidays[holiday] || {}),
-        [field]: fieldValue,
-      },
+      [holiday]: nextSelection,
     };
 
     setHolidays(nextHolidays);
@@ -103,19 +116,16 @@ export default function HolidaySchedule({
   return (
     <div className="holiday-schedule" aria-label={ariaLabel}>
       <p className="holiday-schedule__intro">{introText}</p>
-      <div className="holiday-schedule__header" aria-hidden="true">
-        <span>{itemLabel}</span>
-        <span>Does not apply</span>
-        <span>{yearFieldLabel}</span>
-        <span>Time</span>
-        <span>Alternative requests</span>
-      </div>
-      {getHolidayNames(holidays, baseHolidays).map((holiday) => {
+      <div className="holiday-schedule__items">
+        {getHolidayNames(holidays, baseHolidays).map((holiday) => {
         const savedSelection = holidays[holiday] || {};
+        const hasLegacyDetails = Boolean(savedSelection.year || savedSelection.time || savedSelection.dropOffTime || savedSelection.alternativeRequest);
+        const legacyDoesNotApply = savedSelection.doesNotApply ?? savedSelection.year === 'na';
         const selection = {
           ...EMPTY_HOLIDAY,
           ...savedSelection,
-          doesNotApply: savedSelection.doesNotApply ?? savedSelection.year === 'na',
+          applies: savedSelection.applies ?? (!legacyDoesNotApply && hasLegacyDetails),
+          doesNotApply: legacyDoesNotApply,
           year: savedSelection.year === 'na' ? '' : (savedSelection.year || EMPTY_HOLIDAY.year),
         };
         const holidayErrors = errors[holiday] || {};
@@ -128,14 +138,25 @@ export default function HolidaySchedule({
         const timeDisabled = timeDisabledItems.includes(holiday) || selection.year !== 'every';
         const description = descriptions[holiday];
 
+        const showDetails = selection.applies && !selection.doesNotApply;
+
         return (
           <div className="holiday-schedule__row" key={holiday}>
             <div className="holiday-schedule__name">
               <span>{holiday}</span>
               {description && <span className="holiday-schedule__description">{description}</span>}
             </div>
-            <div className="holiday-schedule__field holiday-schedule__field--check">
-              <span className="holiday-schedule__field-label">Does not apply</span>
+            <div className="holiday-schedule__choices">
+              <label className="holiday-schedule__checkbox-label" htmlFor={`${holidayId}-applies`}>
+                <input
+                  id={`${holidayId}-applies`}
+                  type="checkbox"
+                  checked={selection.applies}
+                  aria-label={`${holiday} applies`}
+                  onChange={(event) => updateHoliday(holiday, 'applies', event.target.checked)}
+                />
+                <span>Applies</span>
+              </label>
               <label className="holiday-schedule__checkbox-label" htmlFor={`${holidayId}-does-not-apply`}>
                 <input
                   id={`${holidayId}-does-not-apply`}
@@ -146,9 +167,15 @@ export default function HolidaySchedule({
                 />
                 <span>Does not apply</span>
               </label>
+              {holidayErrors.choice && (
+                <span className="holiday-schedule__error" id={`${holidayId}-choice-error`}>
+                  {holidayErrors.choice}
+                </span>
+              )}
             </div>
+            {showDetails && <div className="holiday-schedule__details">
             <div className="holiday-schedule__field">
-              <span className="holiday-schedule__field-label">{yearFieldLabel}</span>
+              <label className="holiday-schedule__field-label" htmlFor={`${holidayId}-year`}>{yearFieldLabel}</label>
               <select
                 id={`${holidayId}-year`}
                 aria-label={`${holiday} year`}
@@ -169,13 +196,14 @@ export default function HolidaySchedule({
                 </span>
               )}
             </div>
-            <div className="holiday-schedule__field">
-              <span className="holiday-schedule__field-label">{timeDisabled ? 'Time' : 'Time (e.g. 6:00 PM)'}</span>
+            <div className="holiday-schedule__field holiday-schedule__field--start-time">
+              <label className="holiday-schedule__field-label" htmlFor={`${holidayId}-time`}>{timeDisabled ? 'Start time' : 'Start time (e.g. 6:00 PM)'}</label>
               {timeDisabled ? (
-                <span className="holiday-schedule__not-applicable" aria-label={`${holiday} time not applicable`}>N/A</span>
+                <span className="holiday-schedule__not-applicable" aria-label={`${holiday} start time not applicable`}>N/A</span>
               ) : (
                 <input
-                  aria-label={`${holiday} time`}
+                  id={`${holidayId}-time`}
+                  aria-label={`${holiday} start time`}
                   type="text"
                   inputMode="text"
                   autoComplete="off"
@@ -196,9 +224,38 @@ export default function HolidaySchedule({
                 </span>
               )}
             </div>
+            {showDropOffTime && <div className="holiday-schedule__field holiday-schedule__field--end-time">
+              <label className="holiday-schedule__field-label" htmlFor={`${holidayId}-drop-off-time`}>{timeDisabled ? 'End time' : 'End time (e.g. 6:00 PM)'}</label>
+              {timeDisabled ? (
+                <span className="holiday-schedule__not-applicable" aria-label={`${holiday} end time not applicable`}>N/A</span>
+              ) : (
+                <input
+                  id={`${holidayId}-drop-off-time`}
+                  aria-label={`${holiday} end time`}
+                  type="text"
+                  inputMode="text"
+                  autoComplete="off"
+                  placeholder="6:00 PM"
+                  maxLength="8"
+                  pattern="(0?[1-9]|1[0-2]):[0-5][0-9] ?(AM|PM|am|pm)"
+                  value={selection.dropOffTime}
+                  disabled={selection.doesNotApply}
+                  required={!selection.doesNotApply && selection.year === 'every'}
+                  aria-invalid={Boolean(holidayErrors.dropOffTime)}
+                  aria-describedby={holidayErrors.dropOffTime ? `${holidayId}-drop-off-time-error` : undefined}
+                  onChange={(event) => updateHoliday(holiday, 'dropOffTime', event.target.value)}
+                />
+              )}
+              {holidayErrors.dropOffTime && (
+                <span className="holiday-schedule__error" id={`${holidayId}-drop-off-time-error`}>
+                  {holidayErrors.dropOffTime}
+                </span>
+              )}
+            </div>}
             <div className="holiday-schedule__field">
-              <span className="holiday-schedule__field-label">Alternative requests</span>
+              <label className="holiday-schedule__field-label" htmlFor={`${holidayId}-alternative-request`}>Alternative requests</label>
               <textarea
+                id={`${holidayId}-alternative-request`}
                 aria-label={`${holiday} alternative requests`}
                 placeholder="Add an alternative request"
                 value={selection.alternativeRequest}
@@ -207,9 +264,11 @@ export default function HolidaySchedule({
                 onChange={(event) => updateHoliday(holiday, 'alternativeRequest', event.target.value)}
               />
             </div>
+            </div>}
           </div>
         );
-      })}
+        })}
+      </div>
       {isAddingHoliday ? (
         <form className="holiday-schedule__add-form" onSubmit={addHoliday}>
           <label htmlFor={`${idPrefix}-new-item-name`}>{itemLabel} name</label>

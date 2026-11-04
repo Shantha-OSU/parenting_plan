@@ -99,6 +99,16 @@ export const CUSTOM_COMPARISON_QUESTIONS = {
   'parentingTimeAndCommunication.notifyCoParentOfChildRelatedEventsDescription': {
     qText: 'Please describe the circumstances under which you would notify your co-parent if your child gets sick or injured:',
   },
+  'parentingTimeAndCommunication.holidayGatheringAdults': {
+    qText: 'Are there any adults at holiday gatherings you do not want your child to be around?',
+    options: [
+      { value: 'yes', label: 'Yes' },
+      { value: 'no', label: 'No' },
+    ],
+  },
+  'parentingTimeAndCommunication.holidayGatheringAdultsDetails': {
+    qText: 'Please list the name of the adult',
+  },
   'informationSharing.medicalRecords': {
     qText: 'Medical information access',
     label: 'Medical information access',

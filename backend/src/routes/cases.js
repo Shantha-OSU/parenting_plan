@@ -24,6 +24,8 @@ const COMPARABLE_SECTION_FIELDS = {
     'communicationWithCoParentOnPhoneDescription',
     'notifyCoParentOfChildRelatedEvents',
     'notifyCoParentOfChildRelatedEventsDescription',
+    'holidayGatheringAdults',
+    'holidayGatheringAdultsDetails',
   ],
   informationSharing: [
     'medicalRecords',
@@ -66,7 +68,20 @@ function toPlanAnswerMap(plan, parentRole) {
 
   for (const [section, fields] of Object.entries(COMPARABLE_SECTION_FIELDS)) {
     for (const field of fields) {
-      const answer = plan[section]?.[field];
+      const sectionData = plan[section] || {};
+      const childScheduleField = {
+        parentingSchedule: 'parentingSchedulesByChild',
+        holidaySchedule: 'holidaySchedulesByChild',
+        schoolSchedule: 'schoolSchedulesByChild',
+      }[field];
+      const answer = sectionData.scheduleScope === 'later' && childScheduleField
+        ? { scheduleScope: 'later' }
+        : sectionData.scheduleScope === 'byChild' && childScheduleField
+        ? {
+          scheduleScope: 'byChild',
+          schedulesByChild: sectionData[childScheduleField] || {},
+        }
+        : sectionData[field];
       if (answer !== undefined && answer !== null && answer !== '') {
         answers[`${section}.${field}`] = parentRole ? normalizeAnswer(answer, parentRole) : answer;
       }
