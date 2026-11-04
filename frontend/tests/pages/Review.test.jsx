@@ -197,9 +197,30 @@ describe('Review', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/getting-started')
   })
 
-  it('clicking Edit Parental Rights navigates to the correct route', async () => {
+  it('enables question editing from the Parental Rights section Edit button', async () => {
+    mockQuestions = [{
+      qKey: 'individual_child_housing',
+      section: 'parental-rights',
+      qTitle: 'Individual child housing',
+      qText: 'Do you want the child to live with you?',
+      type: 'multiple choice',
+      options: [{ value: 'yes', label: 'Yes' }],
+    }]
+    mockPlanAnswers = [{ qKey: 'individual_child_housing', answer: 'yes' }]
+
     renderReview()
-    await userEvent.click(screen.getByRole('button', { name: /edit parental rights/i }))
+
+    const sectionEditButton = await screen.findByRole('button', { name: /edit parental rights/i })
+    expect(screen.queryByRole('button', { name: /edit individual child housing/i })).not.toBeInTheDocument()
+    await userEvent.click(sectionEditButton)
+    expect(screen.getByText('Click a question below to edit it.')).toBeInTheDocument()
+    const questionButton = await screen.findByRole('button', { name: /edit individual child housing/i })
+    await userEvent.click(questionButton)
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_SECTION',
+      section: 'question',
+      payload: expect.objectContaining({ qKey: 'individual_child_housing' }),
+    })
     expect(mockNavigate).toHaveBeenCalledWith('/parental-rights')
   })
 

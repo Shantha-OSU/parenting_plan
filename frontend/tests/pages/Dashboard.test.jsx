@@ -152,6 +152,12 @@ describe('Dashboard', () => {
     expect(screen.getByText('Your Plans')).toBeInTheDocument()
   })
 
+  it('shows admins a link to the admin view', async () => {
+    renderDashboard()
+    const adminLink = await screen.findByRole('link', { name: /admin view/i })
+    expect(adminLink).toHaveAttribute('href', '/admin')
+  })
+
   it('renders the New Plan button', () => {
     renderDashboard()
     expect(screen.getByRole('button', { name: /new plan/i })).toBeInTheDocument()

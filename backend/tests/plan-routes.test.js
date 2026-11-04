@@ -263,6 +263,40 @@ test('POST /api/plan/:planId/answer saves a new answer', async (t) => {
   assert.deepEqual(json.answers, [{ qKey: 'rights-choice', answer: 'sole' }]);
 });
 
+test('POST /api/plan/:planId/answer preserves later answers when an earlier answer changes', async (t) => {
+  const plan = {
+    _id: 'plan-1',
+    userID: 'user-1',
+    answers: [
+      { qKey: 'rights-choice', answer: 'sole' },
+      { qKey: 'later-question', answer: 'yes' },
+    ],
+    async save() {},
+  };
+
+  const server = await createTestServer({
+    Plan: {
+      async findById() {
+        return plan;
+      },
+    },
+  });
+
+  t.after(() => server.close());
+
+  const { response, json } = await requestJson(server.baseUrl, '/api/plan/plan-1/answer', {
+    method: 'POST',
+    body: { qKey: 'rights-choice', answer: 'joint' },
+  });
+
+  assert.equal(response.status, 201);
+  assert.deepEqual(plan.answers, [
+    { qKey: 'rights-choice', answer: 'joint' },
+    { qKey: 'later-question', answer: 'yes' },
+  ]);
+  assert.deepEqual(json.answers, plan.answers);
+});
+
 // Test 7: Update current question
 test('POST /api/plan/updateCurrent/:planId/:currQId updates the current question', async (t) => {
   let saved = false;

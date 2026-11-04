@@ -224,15 +224,12 @@ router.post('/:planId/answer', verifyToken, async (req, res) => {
     const {qKey, answer} = req.body
     const index = plan.answers.findIndex(userAnswer => userAnswer.qKey === qKey)
     const oldAnswer = plan.answers[index]?.answer
-    if (!oldAnswer) {
+    if (index === -1) {
       // case for first question answered in plan
       plan.answers.push({qKey: qKey, answer: answer})
-    } else if (oldAnswer !== answer) {
+    } else if (JSON.stringify(oldAnswer) !== JSON.stringify(answer)) {
       // case for changing exsisting response
       plan.answers[index] = {qKey: qKey, answer: answer}
-      // this chops off everything after the new answer since our "path" through the decision tree may be different
-      // TODO: maybe update so that it only chops off questions if they aren't defaultNextQuestions?
-      plan.answers.splice(index + 1)
     } else {
       // no change to question required since answer matches
       return res.status(200).json(plan)
@@ -286,10 +283,14 @@ router.get('/prevQuestion/:qkey/:planId', verifyToken, async (req, res) => {
     }
     let index = plan.answers.findIndex(userAnswer => userAnswer.qKey === qKey)
     if (index < 0) {
-      // if index < 0, that means we are on a question we haven't answered yet, thus prev question will be most recent one answered
+      // If the current question has not been answered yet, use the most recent answer.
       index = plan.answers.length
     }
-    const prevQuestion = (index - 1) >= 0 ? await Question.findOne({qKey: plan.answers[index - 1].qKey}) : "none"
+    const previousKey = index > 0 ? plan.answers[index - 1].qKey : undefined;
+
+    const prevQuestion = previousKey
+      ? await Question.findOne({ qKey: previousKey })
+      : "none";
     return res.status(200).json(prevQuestion)
   } catch (error) {
     console.error(error);

@@ -32,6 +32,7 @@ export default function RemainingChildrenLoopBack({
   remainingChildren,
   intentKey,
   taxYearsKey,
+  taxYearParentKey = `${taxYearsKey}Parent`,
   customYearsKey,
   formData,
   parentRole,
@@ -39,6 +40,7 @@ export default function RemainingChildrenLoopBack({
 }) {
   const intent      = formData[intentKey] ?? '';
   const taxYears    = formData[taxYearsKey] ?? '';
+  const taxYearParent = formData[taxYearParentKey] ?? '';
   const customYears = formData[customYearsKey] ?? '';
 
   const remainingLabel = remainingChildren.length === 1
@@ -64,6 +66,7 @@ export default function RemainingChildrenLoopBack({
             onChange={(val) => onUpdate({
               [intentKey]: val,
               [taxYearsKey]: '',
+              [taxYearParentKey]: '',
               [customYearsKey]: '',
             })}
           />
@@ -73,11 +76,15 @@ export default function RemainingChildrenLoopBack({
             <ClaimEveryYearDisclaimers parentRole={parentRole} />
           )}
 
-          {/* → some years: show tax year question + optional custom input + disclaimers */}
+          {/* → defer: show defer disclaimers */}
+          {intent === 'defer' && parentRole && (
+            <DeferDisclaimers parentRole={parentRole} />
+          )}
+          {/* → split years: show tax year question + optional custom input + disclaimers */}
           {intent === 'someYears' && (
             <>
               <p className="parent-label" style={{ marginTop: '1.25rem' }}>
-                Which tax years will you claim <strong>{remainingLabel}</strong>?
+                State split years for <strong>{remainingLabel}</strong>
               </p>
               <div className="radio-group">
                 {TAX_YEAR_OPTIONS.map(({ value, label }) => (
@@ -87,12 +94,32 @@ export default function RemainingChildrenLoopBack({
                       name={taxYearsKey}
                       value={value}
                       checked={taxYears === value}
-                      onChange={() => onUpdate({ [taxYearsKey]: value, [customYearsKey]: '' })}
+                      onChange={() => onUpdate({ [taxYearsKey]: value, [taxYearParentKey]: '', [customYearsKey]: '' })}
                     />
                     <span>{label}</span>
                   </label>
                 ))}
               </div>
+
+              {(taxYears === 'odd' || taxYears === 'even') && (
+                <>
+                  <p className="parent-label">Which parent will get the child for these years?</p>
+                  <div className="radio-group">
+                    {['parent1', 'parent2'].map((parent) => (
+                      <label key={parent} className="radio-option">
+                        <input
+                          type="radio"
+                          name={taxYearParentKey}
+                          value={parent}
+                          checked={taxYearParent === parent}
+                          onChange={() => onUpdate({ [taxYearParentKey]: parent })}
+                        />
+                        <span>{parent === 'parent1' ? 'Parent 1' : 'Parent 2'} will get the child for {taxYears}-numbered years (co-parent will receive the child in the opposite years)</span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
 
               {taxYears === 'custom' && (
                 <div className="tax-custom-years">
@@ -109,19 +136,14 @@ export default function RemainingChildrenLoopBack({
                   />
                 </div>
               )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
               {taxYears && (
                 <ClaimSomeYearsDisclaimers taxYears={taxYears} parentRole={parentRole} />
               )}
             </>
           )}
-
-          {/* → defer: show defer disclaimers */}
-          {intent === 'defer' && parentRole && (
-            <DeferDisclaimers parentRole={parentRole} />
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}

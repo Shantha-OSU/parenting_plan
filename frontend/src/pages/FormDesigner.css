@@ -10,16 +10,30 @@
 .form-designer__palette { position: sticky; top: 1rem; }
 .form-designer__palette h2 { font-size: 1rem; margin: 0.25rem 0 0.7rem; color: #425057; }
 .form-designer__palette h3 { font-size: 0.85rem; margin: 0.9rem 0 0.5rem; color: #52636a; }
+.form-designer__question-search { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.75rem 0 1rem; color: #52636a; font-size: 0.78rem; font-weight: 600; }
+.form-designer__question-search input { width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 5px; padding: 0.5rem 0.6rem; color: #374151; font: inherit; font-weight: 400; }
 .form-designer__page-tabs { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
 .form-designer__page-tabs button { width: 100%; justify-content: flex-start; border: 1px solid #d1d5db; background: #f9fafb; color: #52636a; }
 .form-designer__page-tabs .form-designer__page-tab--active { border-color: #1bb0dd; background: #e8f8fd; color: #087da2; font-weight: 600; }
 .form-designer__palette button { width: 100%; justify-content: flex-start; margin-bottom: 0.5rem; }
 .form-designer__palette .form-designer__answer-token { align-items: flex-start; flex-wrap: wrap; }
-.form-designer__question-label { flex: 1 1 100%; font-size: 0.72rem; font-weight: 700; color: #425057; }
+.form-designer__question-label { flex: 1 1 100%; font-size: 0.72rem; font-weight: 700;
+}
+
+.form-designer__discussion-answers {
+display: grid;
+gap: 0.5rem;
+}
+
+.form-designer__discussion-answer strong {
+display: block; color: #425057; }
 .form-designer__question-text { flex: 1 1 100%; margin-top: 0.15rem; font-weight: 400; line-height: 1.3; }
 .form-designer__hint, .form-designer__empty, .form-designer__drop-hint { color: #6b7280; font-size: 0.85rem; }
 .form-designer__answer-token { cursor: grab !important; background: #f9fafb !important; border-color: #d1d5db !important; color: #374151 !important; text-align: left; }
 .form-designer__canvas { min-height: 650px; background: #f8fafc; }
+.form-designer__canvas-pagination { display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 1rem; color: #52636a; font-size: 0.85rem; }
+.form-designer__canvas-pagination button { border: 1px solid #1bb0dd; border-radius: 5px; padding: 0.35rem 0.65rem; background: #e8f8fd; color: #087da2; cursor: pointer; }
+.form-designer__canvas-pagination button:disabled { border-color: #d1d5db; background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
 .form-designer__canvas--blank { width: 8.5in; min-height: 11in; box-sizing: border-box; margin: 0 auto; background: #fff; border: 1px solid #cbd5e1; }
 .form-designer__title { width: 100%; box-sizing: border-box; border: 0; border-bottom: 2px solid #1bb0dd; padding: 0.5rem; margin-bottom: 1rem; font-size: 1.5rem; font-weight: 700; color: #425057; background: transparent; }
 .form-designer__print-title, .form-designer__print-text { display: none; }

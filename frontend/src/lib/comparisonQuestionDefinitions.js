@@ -14,9 +14,16 @@ const parentingTimeOptions = [
   { value: 'defaultToCoParentChoice', label: "Default to my co-parent's choice" },
 ];
 
+const schoolAddressOptions = [
+  { value: 'me', label: 'Just my address' },
+  { value: 'coParent', label: "Just my co-parent's address" },
+  { value: 'defaultToCoParent', label: "Default to my co-parent's address" },
+  { value: 'needMoreInfo', label: 'I need more information' },
+];
+
 const policyAgreementOptions = [
   { value: true, label: 'I agree to the standard policy' },
-  { value: false, label: 'I do not agree to the standard policy' },
+  { value: false, label: 'I do not agree with the standard policy' },
 ];
 
 export const CUSTOM_COMPARISON_QUESTIONS = {
@@ -50,6 +57,10 @@ export const CUSTOM_COMPARISON_QUESTIONS = {
       { value: 'me', label: 'Me' },
       { value: 'coparent', label: 'My co-parent' },
     ],
+  },
+  school_address_parent: {
+    qText: 'Which parent will be the school-address parent?',
+    options: schoolAddressOptions,
   },
   'parentingTimeAndCommunication.parentingSchedule': {
     qText: 'Regular Parenting Schedule',
@@ -89,13 +100,19 @@ export const CUSTOM_COMPARISON_QUESTIONS = {
     qText: 'Please describe the circumstances under which you would notify your co-parent if your child gets sick or injured:',
   },
   'informationSharing.medicalRecords': {
-    qText: "Do you agree to these default rights? If not, provide what rights you would like or not like your co-parent to have."
+    qText: 'Medical information access',
+    label: 'Medical information access',
+    options: informationSharingOptions,
   },
   'informationSharing.schoolContact': {
-    qText: "Do you agree to these default rights? If not, provide what rights you would like or not like your co-parent to have."
+    qText: 'School contact rights',
+    label: 'School contact rights',
+    options: informationSharingOptions,
   },
   'informationSharing.schoolActivities': {
-    qText: "Do you agree to these default rights? If not, provide what rights you would like or not like your co-parent to have."
+    qText: 'School activity participation',
+    label: 'School activity participation',
+    options: informationSharingOptions,
   },
   'taxExemptions.parentRole': {
     qText: 'Your parental role',
