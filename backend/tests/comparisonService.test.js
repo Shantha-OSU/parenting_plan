@@ -39,6 +39,21 @@ test('normalizes human-readable relative parent choices', () => {
   assert.equal(diff.agreement, true);
 });
 
+test('normalizes the case filing choices as answers relative to each parent', () => {
+  const [diff] = computeDiff(
+    { 'getting-started.caseFilingStatus': 'parent1/petitioner1/plaintiff' },
+    { 'getting-started.caseFilingStatus': 'parent2/petitioner2/defendant' },
+    {
+      'getting-started.caseFilingStatus': [
+        'parent1/petitioner1/plaintiff',
+        'parent2/petitioner2/defendant',
+      ],
+    },
+  );
+
+  assert.equal(diff.agreement, true);
+});
+
 test('relative parent choices override configured raw-value conflicts', () => {
   const [diff] = computeDiff(
     { legal_decisions: 'parent1' },

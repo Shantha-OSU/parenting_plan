@@ -130,6 +130,37 @@ const planSchema = new mongoose.Schema(
     enum: ['parent1/petitioner1/plaintiff', 'parent2/petitioner2/defendant', 'no_case', 'flagged', 'defer', ''],
     default: ''
   },
+  currentCircumstance: {
+    type: String,
+    enum: [
+      'married',
+      'never_married_seeking_custody',
+      'never_married_seeking_parenting_time',
+      ''
+    ],
+    default: ''
+  },
+  caseFilingStatus: {
+    type: String,
+    enum: [
+      'parent1/petitioner1/plaintiff',
+      'parent2/petitioner2/defendant',
+      'no_case',
+      'flagged',
+      ''
+    ],
+    default: ''
+  },
+  courtCustodyOrderIssued: {
+    type: String,
+    enum: ['yes', 'no', ''],
+    default: ''
+  },
+  custodyGrantedTo: {
+    type: String,
+    enum: ['me', 'coparent', ''],
+    default: ''
+  },
   residentialParent: {
     type: String,
     default: ''

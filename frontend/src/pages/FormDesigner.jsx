@@ -643,10 +643,35 @@ export function collectAnswers(state, questions, caseParentNames = {}) {
     parent2State: 'Parent 2 state',
     parent2ZipCode: 'Parent 2 ZIP code',
   }, 'case', true, true, true);
-  addFields(state.plan, 'Getting Started', {
-    userRole: 'Case filing status',
-    residentialParent: 'Residential parent',
-  });
+  const legacyUserRole = state.plan?.userRole ?? '';
+  const gettingStartedData = {
+    ...state.plan,
+    currentCircumstance: state.plan?.currentCircumstance || (
+      ['married', 'never_married_seeking_custody', 'never_married_seeking_parenting_time']
+        .includes(legacyUserRole)
+        ? legacyUserRole
+        : ''
+    ),
+    caseFilingStatus: state.plan?.caseFilingStatus || (
+      [
+        'parent1/petitioner1/plaintiff',
+        'parent2/petitioner2/defendant',
+        'no_case',
+        'flagged',
+      ].includes(legacyUserRole)
+        ? legacyUserRole
+        : ''
+    ),
+    custodyGrantedTo: state.plan?.courtCustodyOrderIssued === 'yes'
+      ? state.plan?.custodyGrantedTo
+      : '',
+  };
+  addFields(gettingStartedData, 'Getting Started', {
+    currentCircumstance: 'Current circumstance',
+    caseFilingStatus: 'Case filing status',
+    courtCustodyOrderIssued: 'Court custody order issued',
+    custodyGrantedTo: 'Parent granted custody',
+  }, 'getting-started');
   const parentingTimeData = {
     ...(state.timeAndCommunication || {}),
     ...(state.plan?.timeAndCommunication || {}),

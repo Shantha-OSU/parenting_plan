@@ -157,8 +157,10 @@ export default function Layout({ children }) {
           state: parents.state,
           zipCode: parents.zipCode,
           aggregateData: plan.aggregateData ?? {},
-          userRole: plan.userRole,
-          residentialParent: plan.residentialParent
+          currentCircumstance: plan.currentCircumstance,
+          caseFilingStatus: plan.caseFilingStatus,
+          courtCustodyOrderIssued: plan.courtCustodyOrderIssued,
+          custodyGrantedTo: plan.custodyGrantedTo
       })
       })
       .then( async (response) => {
@@ -222,6 +224,86 @@ export default function Layout({ children }) {
     })
   }
 
+  async function saveGettingStartedBeforeNavigation(idToken) {
+    const saveRequest = async (url, body) => {
+      const response = await fetch(buildApiUrl(url), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || `Failed to save Getting Started data (${response.status})`);
+      }
+      return response.json();
+    };
+
+    await saveRequest(`api/plan/setCollabMode/${plan._id}`, {
+      mode: plan.collaborationMode,
+    });
+    await saveRequest(`api/plan/${plan._id}/children`, {
+      planChildren: plan.children,
+    });
+    const savedPlan = await saveRequest(`api/plan/${plan._id}/information`, {
+      parentFName: parents.firstName,
+      parentLName: parents.lastName,
+      parentAge: Number(parents.age),
+      phone: parents.phone,
+      streetAddress: parents.streetAddress,
+      addressLine2: parents.addressLine2,
+      city: parents.city,
+      state: parents.state,
+      zipCode: parents.zipCode,
+      aggregateData: plan.aggregateData ?? {},
+      currentCircumstance: plan.currentCircumstance,
+      caseFilingStatus: plan.caseFilingStatus,
+      courtCustodyOrderIssued: plan.courtCustodyOrderIssued,
+      custodyGrantedTo: plan.custodyGrantedTo,
+    });
+    dispatch({
+      type: 'UPDATE_SECTION',
+      section: 'plan',
+      payload: savedPlan,
+    });
+  }
+
+  async function saveQuestionBeforeNavigation(idToken) {
+    const currentResponse = await fetch(
+      buildApiUrl(`api/plan/updateCurrent/${plan._id}/${q._id}`),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+      },
+    );
+    if (!currentResponse.ok) {
+      throw new Error(`Failed to update current question (${currentResponse.status})`);
+    }
+
+    const answerResponse = await fetch(buildApiUrl(`api/plan/${plan._id}/answer`), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ qKey: q.qKey, answer }),
+    });
+    if (!answerResponse.ok) {
+      throw new Error(`Failed to save question answer (${answerResponse.status})`);
+    }
+    const savedPlan = await answerResponse.json();
+    dispatch({
+      type: 'UPDATE_SECTION',
+      section: 'plan',
+      payload: savedPlan,
+    });
+  }
+
   const handleSave = () => {
     if (!user) return;
     const isGettingStarted = location.pathname === '/getting-started';
@@ -256,52 +338,49 @@ export default function Layout({ children }) {
     if (pageOrder[currentPageIndex] !== '/getting-started' && !hasValidQuestionAnswer) {
       return;
     }
-    const navigationAnswer = answer;
-    const apiURL = pageOrder[currentPageIndex] === '/getting-started'
-      ? '/api/logic-engine/question/allocation_parental_rights' // default starting question (probably change to const or something)
-: '/api/logic-engine/nextQuestion/' + encodeURIComponent(q.qKey) + '/' + encodeURIComponent(navigationAnswer)
     try {
-      // get the next 'question' object
-      const response = await fetch(buildApiUrl(apiURL));
+      const idToken = await user.getIdToken();
+      const isGettingStarted = pageOrder[currentPageIndex] === '/getting-started';
+      if (isGettingStarted) {
+        await saveGettingStartedBeforeNavigation(idToken);
+      } else {
+        await saveQuestionBeforeNavigation(idToken);
+      }
+
+      const response = await fetch(buildApiUrl('/api/logic-engine/nextQuestionWithContext'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(isGettingStarted
+          ? { planId: plan._id, startQKey: 'allocation_parental_rights' }
+          : { planId: plan._id, qKey: q.qKey, answer }),
+      });
       if (!response.ok) {
-          throw new Error(`Response status: ${response.status}`);
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || `Failed to load next question (${response.status})`);
       }
-      if (user) {
-        user.getIdToken().then((idToken) => { 
-          if (pageOrder[currentPageIndex] === "/getting-started") {
-            gettingStartedNext(idToken)
-          } else {
-            questionnaireNext(idToken)
-          }
-        })
+      const data = await response.json();
+      if (!data || !data.section) {
+        const nextRoute = location.pathname === '/parental-rights'
+          ? '/parenting-time-communication'
+          : '/review';
+        navigate(nextRoute);
+        return;
       }
-      response.json().then( data => {
-        // If the logic engine returns nothing, the questionnaire is complete.
-        // Small delay so the answer save (questionnaireNext) has time to finish
-        // before we navigate away — both are fire-and-forget parallel chains.
-        if (!data || !data.section) {
-          const nextRoute = location.pathname === '/parental-rights'
-            ? '/parenting-time-communication'
-            : '/review';
-          setTimeout(() => navigate(nextRoute), 600);
-          return;
-        }
-        // Otherwise advance to the next question's section route.
-        dispatch({
-          type: 'UPDATE_SECTION',
-          section: "question",
-          payload: data
-        });
-        // temporary solution until frontend page for health-insurance-coverage is made
-        // until then, display health insurance coverage questions in parental-rights page
-        if (data.section === "health-insurance-coverage") {
-          navigate("/parental-rights")
-          return
-        }
-        navigate("/" + data.section);
-      })
+      dispatch({
+        type: 'UPDATE_SECTION',
+        section: 'question',
+        payload: data,
+      });
+      if (data.section === 'health-insurance-coverage') {
+        navigate('/parental-rights');
+        return;
+      }
+      navigate(`/${data.section}`);
     } catch (e) {
-        console.error(e.message)
+      console.error('Could not navigate to the next question:', e);
     }
   };
 

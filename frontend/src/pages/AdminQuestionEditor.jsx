@@ -36,6 +36,7 @@ const createDefaults = {
   type: 'multiple choice',
   qIcon: 'scale-icon',
   section: 'parental-rights',
+  appliesToGroup: '',
   options: []
 };
 
@@ -65,6 +66,7 @@ function normalizeRule(rule) {
   return {
     isDefault: rule?.isDefault ?? true,
     goToDefault: rule?.goToDefault || '',
+    notApplicableGoTo: rule?.notApplicableGoTo || '',
     nextQuestions: (rule?.nextQuestions || []).map(({ operator, value, goTo }) => ({
       operator,
       value,
@@ -82,6 +84,7 @@ function normalizeQuestion(question) {
     qIcon: question.qIcon,
     qText: question.qText,
     section: question.section,
+    appliesToGroup: question.appliesToGroup || '',
     options: (question.options || []).map(({ value = '', label = '', description = '' }) => ({
       value,
       label,
@@ -226,6 +229,17 @@ function QuestionPreview({ question, onChange }) {
             <span>Section</span>
             <select value={question.section} onChange={(event) => onChange('section', event.target.value)}>
               {questionSections.map((section) => <option key={section}>{section}</option>)}
+            </select>
+          </label>
+          <label className="admin-editor__field">
+            <span>Applies to circumstance</span>
+            <select
+              value={question.appliesToGroup || ''}
+              onChange={(event) => onChange('appliesToGroup', event.target.value)}
+            >
+              <option value="">All circumstances</option>
+              <option value="married">Married</option>
+              <option value="not_married">Not married</option>
             </select>
           </label>
         </div>
@@ -404,9 +418,12 @@ export default function AdminQuestionEditor() {
     }
     const rule = rules.find((item) => item.qKey === question.qKey);
     if (!rule) return '';
-    const destinations = rule.isDefault
-      ? [rule.goToDefault || '']
-      : rule.nextQuestions.map((nextQuestion) => nextQuestion.goTo);
+    const destinations = (rule.isDefault
+      ? [rule.goToDefault || '', rule.notApplicableGoTo || '']
+      : [
+        ...rule.nextQuestions.map((nextQuestion) => nextQuestion.goTo),
+        rule.notApplicableGoTo || '',
+      ]).filter(Boolean);
     if (destinations.length === 0) {
       return 'Save valid branching rules before inserting after this question.';
     }
