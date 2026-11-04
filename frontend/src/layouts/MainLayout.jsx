@@ -338,16 +338,7 @@ export default function Layout({ children }) {
     if (pageOrder[currentPageIndex] !== '/getting-started' && !hasValidQuestionAnswer) {
       return;
     }
-    const navigationAnswer = answer;
-    const apiURL = pageOrder[currentPageIndex] === '/getting-started'
-      ? '/api/logic-engine/question/allocation_parental_rights' // default starting question (probably change to const or something)
-: '/api/logic-engine/nextQuestion/' + encodeURIComponent(q.qKey) + '/' + encodeURIComponent(navigationAnswer)
     try {
-      // get the next 'question' object
-      const response = await fetch(buildApiUrl(apiURL));
-      if (!response.ok) {
-          throw new Error(`Response status: ${response.status}`);
-      }
       const idToken = await user.getIdToken();
       const isGettingStarted = pageOrder[currentPageIndex] === '/getting-started';
       if (isGettingStarted) {
