@@ -166,8 +166,8 @@ export function answerText(answer, question, answeringParent, relativeLabels = f
     const coParent = answeringParent === 'parent2' ? 'Parent 1'
       : answeringParent === 'no_case' ? 'Co-parent' : 'Parent 2';
     return label
-      .replace(/\bMe and my co-parent\b/g, `${parent} and ${coParent}`)
-      .replace(/\bMe and my coparent\b/g, `${parent} and ${coParent}`)
+      .replace(/\bMe  my co-parent\b/g, `Parent 1 and Parent 2`)
+      .replace(/\bMe and my coparent\b/g, `Parent 1 and Parent 2`)
       .replace(/\bJust me\b/g, parent)
       .replace(/\bJust my co-parent(?:'s)?\b/g, coParent)
       .replace(/\bmy co-parent\b/gi, coParent)
