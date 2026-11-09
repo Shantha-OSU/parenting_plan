@@ -732,7 +732,7 @@ export default function Review() {
                     className="review__btn-invite"
                     onClick={handleInviteClick}
                   >
-                    <UserPlus size={16} />
+                    <UserPlus size={16} aria-hidden="true" />
                     {collaborationMode === 'individual' || collaborationMode === ''
                       ? 'Switch & Invite Co-Parent'
                       : 'Invite Co-Parent'}
@@ -740,7 +740,7 @@ export default function Review() {
                 )}
 
                 <button className="review__btn-download" onClick={handleDownload}>
-                  <Download size={16} />
+                  <Download size={16} aria-hidden="true" />
                   Download PDF
                 </button>
               </div>

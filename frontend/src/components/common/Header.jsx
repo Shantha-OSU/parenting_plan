@@ -47,7 +47,7 @@ export default function Header({
               </span>
               {onSignOut && (
                 <button className="header__signout-btn" onClick={onSignOut}>
-                  <LogOut size={16} />
+                  <LogOut size={16} aria-hidden="true" />
                   Sign Out
                 </button>
               )}

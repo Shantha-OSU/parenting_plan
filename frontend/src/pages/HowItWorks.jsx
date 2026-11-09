@@ -53,7 +53,7 @@ export default function HowItWorks() {
       <main>
         <section className="how-it-works__hero">
           <div className="how-it-works__eyebrow">
-            <Heart size={17} fill="currentColor" />
+            <Heart size={17} fill="currentColor" aria-hidden="true" />
             Built for families
           </div>
           <h1>Simplifying parenting plan creation for all families</h1>
@@ -63,7 +63,7 @@ export default function HowItWorks() {
           </p>
           <button className="how-it-works__primary-cta" onClick={() => navigate('/signup')}>
             Create your plan
-            <ArrowRight size={20} />
+            <ArrowRight size={20} aria-hidden="true" />
           </button>
         </section>
 
@@ -76,7 +76,7 @@ export default function HowItWorks() {
           <div className="how-it-works__process">
             <article className="how-it-works__step how-it-works__step--blue">
               <div className="how-it-works__step-top">
-                <div className="how-it-works__step-icon"><FileText size={25} /></div>
+                <div className="how-it-works__step-icon"><FileText size={25} aria-hidden="true" /></div>
                 <span>01</span>
               </div>
               <h3>Start your plan</h3>
@@ -90,12 +90,12 @@ export default function HowItWorks() {
             <div className="how-it-works__paths">
               <div className="how-it-works__path how-it-works__path--solo">
                 <div className="how-it-works__path-title">
-                  <UserRound size={20} />
+                  <UserRound size={20} aria-hidden="true" />
                   <span>Path A: Complete it on your own</span>
                 </div>
                 <article className="how-it-works__step how-it-works__step--purple">
                   <div className="how-it-works__step-top">
-                    <div className="how-it-works__step-icon"><UserRound size={25} /></div>
+                    <div className="how-it-works__step-icon"><UserRound size={25} aria-hidden="true" /></div>
                     <span>02A</span>
                   </div>
                   <h3>Complete it on your own</h3>
@@ -104,7 +104,7 @@ export default function HowItWorks() {
                 <div className="how-it-works__path-arrow" aria-hidden="true">↓</div>
                 <article className="how-it-works__step how-it-works__step--orange">
                   <div className="how-it-works__step-top">
-                    <div className="how-it-works__step-icon"><FileCheck2 size={25} /></div>
+                    <div className="how-it-works__step-icon"><FileCheck2 size={25} aria-hidden="true" /></div>
                     <span>03A</span>
                   </div>
                   <h3>Generate your completed plan</h3>
@@ -114,12 +114,12 @@ export default function HowItWorks() {
 
               <div className="how-it-works__path how-it-works__path--co-parent">
                 <div className="how-it-works__path-title">
-                  <UserRoundPlus size={20} />
+                  <UserRoundPlus size={20} aria-hidden="true" />
                   <span>Path B: Work with your co-parent</span>
                 </div>
                 <article className="how-it-works__step how-it-works__step--green">
                   <div className="how-it-works__step-top">
-                    <div className="how-it-works__step-icon"><UserRoundPlus size={25} /></div>
+                    <div className="how-it-works__step-icon"><UserRoundPlus size={25} aria-hidden="true" /></div>
                     <span>02B</span>
                   </div>
                   <h3>Invite your co-parent</h3>
@@ -128,7 +128,7 @@ export default function HowItWorks() {
                 <div className="how-it-works__path-arrow" aria-hidden="true">↓</div>
                 <article className="how-it-works__step how-it-works__step--orange">
                   <div className="how-it-works__step-top">
-                    <div className="how-it-works__step-icon"><MessageCircle size={25} /></div>
+                    <div className="how-it-works__step-icon"><MessageCircle size={25} aria-hidden="true" /></div>
                     <span>03B</span>
                   </div>
                   <h3>Compare and agree</h3>
@@ -137,7 +137,7 @@ export default function HowItWorks() {
                 <div className="how-it-works__path-arrow" aria-hidden="true">↓</div>
                 <article className="how-it-works__step how-it-works__step--purple">
                   <div className="how-it-works__step-top">
-                    <div className="how-it-works__step-icon"><FileCheck2 size={25} /></div>
+                    <div className="how-it-works__step-icon"><FileCheck2 size={25} aria-hidden="true" /></div>
                     <span>04B</span>
                   </div>
                   <h3>Generate your completed plan</h3>
@@ -159,14 +159,14 @@ export default function HowItWorks() {
             <ul>
               {benefits.map((benefit) => (
                 <li key={benefit}>
-                  <CheckCircle2 size={19} />
+                  <CheckCircle2 size={19} aria-hidden="true" />
                   {benefit}
                 </li>
               ))}
             </ul>
           </div>
           <div className="how-it-works__support-card">
-            <Heart size={34} />
+            <Heart size={34} aria-hidden="true" />
             <h3>Putting the family first.</h3>
             <p>
               Every part of the experience is designed to help you build a plan
@@ -180,7 +180,7 @@ export default function HowItWorks() {
           <p>Start building a parenting plan that works for your family.</p>
           <button className="how-it-works__primary-cta" onClick={() => navigate('/signup')}>
             Get started for free
-            <ArrowRight size={20} />
+            <ArrowRight size={20} aria-hidden="true" />
           </button>
         </section>
       </main>

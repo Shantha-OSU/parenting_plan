@@ -105,7 +105,7 @@ export default function WaitingScreen() {
   return (
     <div className="waiting waiting--centered">
       <div className="waiting__icon">
-        <Clock size={52} color="#14abdd" />
+        <Clock size={52} color="#14abdd" aria-hidden="true" />
       </div>
       <h1 className="waiting__title">{config.title}</h1>
       <p className="waiting__description">{config.description}</p>
@@ -118,7 +118,7 @@ export default function WaitingScreen() {
       <p className="waiting__hint">This page checks for updates every 15 seconds automatically.</p>
 
       <button className="waiting__back-btn" onClick={() => navigate('/dashboard')}>
-        <CheckCircle size={16} />
+        <CheckCircle size={16} aria-hidden="true" />
         Back to Dashboard
       </button>
     </div>

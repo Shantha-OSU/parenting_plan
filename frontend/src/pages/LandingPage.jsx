@@ -20,7 +20,7 @@ export default function LandingPage() {
       <div className="safety-banner">
         <div className="safety-banner__content">
             <div className="safety-banner__icon safety-banner__icon--red">
-              <Shield size={24} />
+              <Shield size={24} aria-hidden="true" />
             </div>
           <span>
             <strong>Safety Resources:</strong> If you or your children are experiencing domestic violence or abuse,
@@ -60,22 +60,22 @@ export default function LandingPage() {
           {/* Feature Cards */}
           <div className="feature-cards">
             <div className="feature-card_left">
-              <FileText className="feature-card_left__icon-bg" size={80} />
-              <FileText className="feature-card_left__icon" size={32} />
+              <FileText className="feature-card_left__icon-bg" size={80} aria-hidden="true" />
+              <FileText className="feature-card_left__icon" size={32} aria-hidden="true" />
               <h3 className="feature-card__title">Guided Process</h3>
               <p className="feature-card__description">Simple questions walk you through each section.</p>
             </div>
 
             <div className="feature-card_center">
-              <Heart className="feature-card_center__icon-bg" size={80} />
-              <Heart className="feature-card_center__icon" size={32} />
+              <Heart className="feature-card_center__icon-bg" size={80} aria-hidden="true" />
+              <Heart className="feature-card_center__icon" size={32} aria-hidden="true" />
               <h3 className="feature-card__title">Child-Focused</h3>
               <p className="feature-card__description">Designed to prioritize your child's well-being.</p>
             </div>
 
             <div className="feature-card_right">
-              <Users className="feature-card_right__icon-bg" size={80} />
-              <Users className="feature-card_right__icon" size={32} />
+              <Users className="feature-card_right__icon-bg" size={80} aria-hidden="true" />
+              <Users className="feature-card_right__icon" size={32} aria-hidden="true" />
               <h3 className="feature-card__title">Work Together</h3>
               <p className="feature-card__description">Invite the other parent to collaborate and agree.</p>
             </div>
@@ -84,7 +84,7 @@ export default function LandingPage() {
           <div className="hero__cta-section">
             <button onClick={handleGetStarted} className="hero__cta-button">
               Begin Your Plan
-              <ArrowRight size={24} />
+              <ArrowRight size={24} aria-hidden="true" />
             </button>
 
             {/* Important Notice Box */}
@@ -109,7 +109,7 @@ export default function LandingPage() {
               <div className="value-props__list">
                 <div className="value-prop">
                   <div className="value-prop__icon value-prop__icon--blue">
-                    <Shield size={24} />
+                    <Shield size={24} aria-hidden="true" />
                   </div>
                   <div>
                     <h3 className="value-prop__title">Court Ready Format</h3>
@@ -121,7 +121,7 @@ export default function LandingPage() {
 
                 <div className="value-prop">
                   <div className="value-prop__icon value-prop__icon--green">
-                    <CheckCircle2 size={24} />
+                    <CheckCircle2 size={24} aria-hidden="true" />
                   </div>
                   <div>
                     <h3 className="value-prop__title">Free & Accessible</h3>
@@ -144,7 +144,7 @@ export default function LandingPage() {
                   <div className="mockup__line mockup__line--75"></div>
                   <div className="mockup__line mockup__line--100"></div>
                   <div className="mockup__document">
-                    <FileText size={48} />
+                    <FileText size={48} aria-hidden="true" />
                   </div>
                   <div className="mockup__line mockup__line--66"></div>
                 </div>

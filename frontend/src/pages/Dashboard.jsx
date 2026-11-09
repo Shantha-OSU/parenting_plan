@@ -402,7 +402,7 @@ export default function Dashboard() {
         {showInviteUI && (
           <div className="dashboard__invite-banner">
             <div className="dashboard__invite-icon">
-              <Users size={32} color="#14abdd" />
+              <Users size={32} color="#14abdd" aria-hidden="true" />
             </div>
 
             <div className="dashboard__invite-text">
@@ -434,12 +434,12 @@ export default function Dashboard() {
             <div className="dashboard__plans-actions">
               {isAdmin && (
                 <Link className="dashboard__admin-btn" to="/admin">
-                  <Lock size={16} />
+                  <Lock size={16} aria-hidden="true" />
                   Admin View
                 </Link>
               )}
               <button className="dashboard__new-plan-btn" onClick={handleNewPlan}>
-                <Plus size={16} />
+                <Plus size={16} aria-hidden="true" />
                 New Plan
               </button>
             </div>
@@ -466,15 +466,15 @@ export default function Dashboard() {
                 >
                 <div className="plan-card__top">
                   <div className="plan-card__icon">
-                    <FileText size={24} color="#6b7280" />
+                    <FileText size={24} color="#6b7280" aria-hidden="true" />
                   </div>
                   {plan.isShared && (
                     <span className="plan-card__shared-badge">
-                      <Users size={12} /> Shared
+                      <Users size={12} aria-hidden="true" /> Shared
                     </span>
                   )}
                   <button className="plan-card__delete-btn" onClick={() => setDeleteTarget(plan)}>
-                    <Trash2 size={16} />
+                    <Trash2 size={16} aria-hidden="true" />
                   </button>
                 </div>
 
@@ -492,14 +492,14 @@ export default function Dashboard() {
                     <>
                       <h3 className="plan-card__name">{plan.name}</h3>
                       <button className="plan-card__edit-btn" onClick={() => startEditing(plan)}>
-                        <Pencil size={14} />
+                        <Pencil size={14} aria-hidden="true" />
                       </button>
                     </>
                   )}
                 </div>
 
                 <div className="plan-card__meta">
-                  <Calendar size={14} color="#9ca3af" />
+                  <Calendar size={14} color="#9ca3af" aria-hidden="true" />
                   <span>Last modified: {plan.lastModified}</span>
                 </div>
                 {(() => {
@@ -600,7 +600,7 @@ export default function Dashboard() {
                 {/* Per-card invite button — hidden for locked-individual users */}
                 {planCollaborationMode !== 'locked-individual' && !plan.isShared && (
                   <button className="plan-card__invite-btn" onClick={() => { setActiveCaseId(plan.caseId || null); handleInviteClick(plan); }}>
-                  <UserPlus size={14} />
+                  <UserPlus size={14} aria-hidden="true" />
                     {planCollaborationMode === 'individual' || planCollaborationMode === '' ? 'Switch & Invite' : 'Invite Parent'}
                   </button>
                 )}
