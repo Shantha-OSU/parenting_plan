@@ -54,6 +54,7 @@ export default function TextQuestion({
           placeholder={placeholder}
           error={error}
           required={required}
+          autoFocus
           autoComplete={autoComplete}
           className={className}
         />
