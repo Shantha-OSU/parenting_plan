@@ -454,15 +454,7 @@ export default function Dashboard() {
                   key={plan._id}
                   className={`plan-card${plan.isShared ? ' plan-card--shared' : ''}`}
                   onContextMenu={e => handleContextMenu(e, plan)}
-                  onKeyDown={e => {
-                    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
-                      e.preventDefault();
-                      handleContextMenu(e, plan);
-                    }
-                  }}
-                  tabIndex={0}
-                  aria-haspopup="menu"
-                  aria-label={`Plan actions for ${plan.name}`}
+                  tabIndex={-1}
                 >
                 <div className="plan-card__top">
                   <div className="plan-card__icon">
