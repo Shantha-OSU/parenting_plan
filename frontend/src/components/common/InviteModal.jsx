@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, UserPlus, Mail, Copy, Check } from 'lucide-react';
 import { sendCaseInvite, getPendingInviteLink } from '../../lib/inviteApi';
+import useModalAccessibility from '../../hooks/useModalAccessibility';
 import './InviteModal.css';
 
 export default function InviteModal({ isOpen, onClose, caseId, onInviteSent }) {
@@ -9,6 +10,7 @@ export default function InviteModal({ isOpen, onClose, caseId, onInviteSent }) {
   const [sent, setSent] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [inviteLink, setInviteLink] = useState(null);
+  const { dialogRef, handleKeyDown } = useModalAccessibility(isOpen, onClose);
 
     if (!isOpen) return null;
 
@@ -46,7 +48,15 @@ export default function InviteModal({ isOpen, onClose, caseId, onInviteSent }) {
 
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
-      <div className="invite-modal" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title">
+      <div
+        ref={dialogRef}
+        className="invite-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="invite-modal-title"
+        tabIndex="-1"
+        onKeyDown={handleKeyDown}
+      >
         <div className="invite-modal__header">
           <div className="invite-modal__title-row">
             <div className="invite-modal__icon">

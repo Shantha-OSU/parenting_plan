@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../co
 import Disclaimer from '../components/forms/Disclaimer';
 import InviteModal from '../components/common/InviteModal';
 import { useForm } from '../hooks/useForm';
+import useModalAccessibility from '../hooks/useModalAccessibility';
 import { auth } from '../lib/firebase';
 import { buildApiUrl } from '../lib/apiClient';
 import { answerText, fetchStandardTemplate, FormTemplatePrintDocument, collectAnswers, standardTemplate } from './FormDesigner';
@@ -471,6 +472,7 @@ export default function Review() {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [showSwitchPrompt, setShowSwitchPrompt] = useState(false);
+  const switchModalAccessibility = useModalAccessibility(showSwitchPrompt, () => setShowSwitchPrompt(false));
   const [caseStatus, setCaseStatus] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [standardReviewTemplate, setStandardReviewTemplate] = useState(null);
@@ -623,8 +625,17 @@ export default function Review() {
         {/* Switch-to-collaborative confirmation prompt */}
         {showSwitchPrompt && (
           <div className="delete-modal__overlay" onClick={() => setShowSwitchPrompt(false)}>
-            <div className="delete-modal" onClick={e => e.stopPropagation()}>
-              <h3 className="delete-modal__title">Switch to collaborative mode?</h3>
+            <div
+              ref={switchModalAccessibility.dialogRef}
+              className="delete-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="review-switch-mode-title"
+              tabIndex="-1"
+              onClick={e => e.stopPropagation()}
+              onKeyDown={switchModalAccessibility.handleKeyDown}
+            >
+              <h3 id="review-switch-mode-title" className="delete-modal__title">Switch to collaborative mode?</h3>
               <p className="delete-modal__body">
                 You're currently completing this plan individually. Switching to collaborative
                 mode will allow your co-parent to fill out their section separately. Would you

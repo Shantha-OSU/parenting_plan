@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Scale, AlertTriangle, RefreshCw, ArrowRight } from 'lucide-react';
 import Checkbox from '../forms/Checkbox';
+import useModalAccessibility from '../../hooks/useModalAccessibility';
 import './LegalNoticeModal.css';
 
 const ACKNOWLEDGMENTS = [
@@ -57,11 +58,21 @@ export default function LegalNoticeModal({ isOpen, onAccept, onClose }) {
     onClose();
   };
 
+  const { dialogRef, handleKeyDown } = useModalAccessibility(isOpen, handleClose);
+
   if (!isOpen) return null;
 
   return (
-    <div className="lnm-overlay" role="dialog" aria-modal="true" aria-labelledby="lnm-title">
-      <div className="lnm">
+    <div className="lnm-overlay">
+      <div
+        ref={dialogRef}
+        className="lnm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lnm-title"
+        tabIndex="-1"
+        onKeyDown={handleKeyDown}
+      >
 
         {/* Header */}
         <div className="lnm__header">

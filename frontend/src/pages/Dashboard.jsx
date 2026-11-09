@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
 import InviteModal from '../components/common/InviteModal';
 import { useForm } from '../hooks/useForm';
+import useModalAccessibility from '../hooks/useModalAccessibility';
 import { buildApiUrl } from '../lib/apiClient';
 import { auth } from '../lib/firebase';
 import './Dashboard.css';
@@ -33,7 +34,10 @@ export default function Dashboard() {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const contextMenuItemRefs = useRef([]);
+  const deleteModalAccessibility = useModalAccessibility(Boolean(deleteTarget), () => setDeleteTarget(null));
+  const switchModalAccessibility = useModalAccessibility(showSwitchPrompt, () => setShowSwitchPrompt(false));
 
   const closeContextMenu = useCallback((restoreFocus = true) => {
     const trigger = contextMenu?.trigger;
@@ -127,8 +131,6 @@ export default function Dashboard() {
     event.preventDefault();
     contextMenuItemRefs.current[nextIndex]?.focus();
   };
-
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const handleDeletePlan = (id) => {
     if (user) {
@@ -308,8 +310,17 @@ export default function Dashboard() {
       {/* Delete confirmation modal */}
       {deleteTarget && (
         <div className="delete-modal__overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="delete-modal" onClick={e => e.stopPropagation()}>
-            <h3 className="delete-modal__title">Delete plan?</h3>
+          <div
+            ref={deleteModalAccessibility.dialogRef}
+            className="delete-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-plan-title"
+            tabIndex="-1"
+            onClick={e => e.stopPropagation()}
+            onKeyDown={deleteModalAccessibility.handleKeyDown}
+          >
+            <h3 id="delete-plan-title" className="delete-modal__title">Delete plan?</h3>
             <p className="delete-modal__body">
               Are you sure you want to delete <strong>"{deleteTarget.name}"</strong>? This action cannot be undone.
             </p>
@@ -324,8 +335,17 @@ export default function Dashboard() {
       {/* Switch-to-collaborative confirmation prompt */}
       {showSwitchPrompt && (
         <div className="delete-modal__overlay" onClick={() => setShowSwitchPrompt(false)}>
-          <div className="delete-modal" onClick={e => e.stopPropagation()}>
-            <h3 className="delete-modal__title">Switch to collaborative mode?</h3>
+          <div
+            ref={switchModalAccessibility.dialogRef}
+            className="delete-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="switch-mode-title"
+            tabIndex="-1"
+            onClick={e => e.stopPropagation()}
+            onKeyDown={switchModalAccessibility.handleKeyDown}
+          >
+            <h3 id="switch-mode-title" className="delete-modal__title">Switch to collaborative mode?</h3>
             <p className="delete-modal__body">
               You're currently completing this plan individually. Switching to collaborative mode
               will allow your co-parent to fill out their section separately. Would you like to switch?
