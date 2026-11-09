@@ -261,14 +261,39 @@ function SectionBlock({ sectionKey, responses, onEdit, onEditQuestion, isOpen, o
     route: '/',
   };
   const hasAnswers = responses && responses.length > 0;
+  const handleSectionHeaderKeyDown = (event) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      onToggle();
+    } else if (event.key === ' ') {
+      event.preventDefault();
+    }
+  };
+  const handleSectionHeaderKeyUp = (event) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === ' ') {
+      event.preventDefault();
+      onToggle();
+    }
+  };
 
   return (
     <Card className="review__section-card">
       <CardHeader className="review__section-card-header">
-        <div className="review__section-header" onClick={onToggle} role="button" aria-expanded={isOpen} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onToggle()}>
+        <div
+          className="review__section-header"
+          onClick={onToggle}
+          role="button"
+          aria-expanded={isOpen}
+          tabIndex={0}
+          onKeyDown={handleSectionHeaderKeyDown}
+          onKeyUp={handleSectionHeaderKeyUp}
+        >
           <div className="review__section-header-left">
             <CheckCircle
               size={18}
+              aria-hidden="true"
               className={hasAnswers ? 'review__check--complete' : 'review__check--incomplete'}
             />
             <span className="review__section-title">{meta.label}</span>
@@ -284,13 +309,15 @@ function SectionBlock({ sectionKey, responses, onEdit, onEditQuestion, isOpen, o
                   onEdit(meta.route);
                 }
               }}
+              onKeyDown={(e) => e.stopPropagation()}
+              onKeyUp={(e) => e.stopPropagation()}
               aria-label={`Edit ${meta.label}`}
               aria-pressed={supportsQuestionEditing ? isEditingQuestions : undefined}
             >
-              <Pencil size={14} />
+              <Pencil size={14} aria-hidden="true" />
               {supportsQuestionEditing && isEditingQuestions ? 'Done' : 'Edit'}
             </button>
-            {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            {isOpen ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
           </div>
         </div>
       </CardHeader>
