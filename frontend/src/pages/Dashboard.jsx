@@ -1,6 +1,6 @@
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { Calendar, FileText, Lock, Pencil, Plus, Trash2, UserPlus, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
 import InviteModal from '../components/common/InviteModal';
@@ -33,13 +33,28 @@ export default function Dashboard() {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
+  const contextMenuItemRefs = useRef([]);
+
+  const closeContextMenu = useCallback((restoreFocus = true) => {
+    const trigger = contextMenu?.trigger;
+    setContextMenu(null);
+    if (restoreFocus && trigger) {
+      requestAnimationFrame(() => trigger.focus());
+    }
+  }, [contextMenu]);
 
   useEffect(() => {
-    const close = () => setContextMenu(null);
+    const close = () => closeContextMenu(false);
     window.addEventListener('click', close);
     window.addEventListener('scroll', close);
     return () => { window.removeEventListener('click', close); window.removeEventListener('scroll', close); };
-  }, []);
+  }, [closeContextMenu]);
+
+  useEffect(() => {
+    if (contextMenu) {
+      contextMenuItemRefs.current[0]?.focus();
+    }
+  }, [contextMenu]);
 
   /*
     This function will be ran anytime the "user" object is updated.
@@ -74,7 +89,43 @@ export default function Dashboard() {
 
   const handleContextMenu = (e, plan) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, plan });
+    const bounds = e.currentTarget.getBoundingClientRect();
+    setContextMenu({
+      x: e.clientX || bounds.left + 16,
+      y: e.clientY || bounds.top + 16,
+      plan,
+      trigger: e.currentTarget,
+    });
+  };
+
+  const handleContextMenuKeyDown = (event) => {
+    const itemCount = contextMenuItemRefs.current.length;
+    if (!itemCount) return;
+
+    let nextIndex;
+    switch (event.key) {
+      case 'ArrowDown':
+        nextIndex = (contextMenuItemRefs.current.indexOf(document.activeElement) + 1) % itemCount;
+        break;
+      case 'ArrowUp':
+        nextIndex = (contextMenuItemRefs.current.indexOf(document.activeElement) - 1 + itemCount) % itemCount;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = itemCount - 1;
+        break;
+      case 'Escape':
+        event.preventDefault();
+        closeContextMenu();
+        return;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    contextMenuItemRefs.current[nextIndex]?.focus();
   };
 
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -296,12 +347,31 @@ export default function Dashboard() {
           className="context-menu"
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={e => e.stopPropagation()}
+          onKeyDown={handleContextMenuKeyDown}
+          role="menu"
+          aria-label={`Actions for ${contextMenu.plan.name}`}
         >
-          <li onClick={() => { startEditing(contextMenu.plan); setContextMenu(null); }}>
-            <Pencil size={14} /> Rename
+          <li role="none">
+            <button
+              type="button"
+              role="menuitem"
+              className="context-menu__item"
+              ref={element => { contextMenuItemRefs.current[0] = element; }}
+              onClick={() => { startEditing(contextMenu.plan); closeContextMenu(); }}
+            >
+              <Pencil size={14} aria-hidden="true" /> Rename
+            </button>
           </li>
-          <li className="context-menu__delete" onClick={() => { setDeleteTarget(contextMenu.plan); setContextMenu(null); }}>
-            <Trash2 size={14} /> Delete
+          <li role="none">
+            <button
+              type="button"
+              role="menuitem"
+              className="context-menu__item context-menu__delete"
+              ref={element => { contextMenuItemRefs.current[1] = element; }}
+              onClick={() => { setDeleteTarget(contextMenu.plan); closeContextMenu(); }}
+            >
+              <Trash2 size={14} aria-hidden="true" /> Delete
+            </button>
           </li>
         </ul>
       )}
@@ -360,7 +430,20 @@ export default function Dashboard() {
               const planCollaborationMode = plan.collaborationMode ?? '';
 
               return (
-                <div key={plan._id} className={`plan-card${plan.isShared ? ' plan-card--shared' : ''}`} onContextMenu={e => handleContextMenu(e, plan)}>
+                <div
+                  key={plan._id}
+                  className={`plan-card${plan.isShared ? ' plan-card--shared' : ''}`}
+                  onContextMenu={e => handleContextMenu(e, plan)}
+                  onKeyDown={e => {
+                    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+                      e.preventDefault();
+                      handleContextMenu(e, plan);
+                    }
+                  }}
+                  tabIndex={0}
+                  aria-haspopup="menu"
+                  aria-label={`Plan actions for ${plan.name}`}
+                >
                 <div className="plan-card__top">
                   <div className="plan-card__icon">
                     <FileText size={24} color="#6b7280" />

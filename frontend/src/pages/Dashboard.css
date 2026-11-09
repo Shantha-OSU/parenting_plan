@@ -85,6 +85,11 @@
 }
 
 .context-menu li {
+  margin: 0;
+}
+
+.context-menu__item {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -92,19 +97,29 @@
   border-radius: 6px;
   font-size: 0.875rem;
   color: #374151;
+  background: transparent;
+  border: 0;
+  text-align: left;
   cursor: pointer;
   transition: background-color 0.15s;
 }
 
-.context-menu li:hover {
+.context-menu__item:hover,
+.context-menu__item:focus-visible {
   background-color: #f3f4f6;
+}
+
+.context-menu__item:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
 }
 
 .context-menu__delete {
   color: #ef4444 !important;
 }
 
-.context-menu__delete:hover {
+.context-menu__delete:hover,
+.context-menu__delete:focus-visible {
   background-color: #fef2f2 !important;
 }
 
