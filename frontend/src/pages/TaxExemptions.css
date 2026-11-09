@@ -113,7 +113,8 @@
 }
 
 .tax-custom-years__input:focus {
-  outline: none;
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
   border-color: #14abdd;
   box-shadow: 0 0 0 3px rgba(20, 171, 221, 0.15);
 }

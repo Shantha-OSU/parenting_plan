@@ -361,9 +361,13 @@
   color: #111827;
   border: none;
   border-bottom: 2px solid #14abdd;
-  outline: none;
   background: transparent;
   width: 100%;
+}
+
+.plan-card__name-input:focus-visible {
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
 }
 
 .plan-card__meta {

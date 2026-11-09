@@ -187,7 +187,11 @@
   font-size: 14px;
   width: 100%;
   box-sizing: border-box;
-  outline: none;
+}
+
+.final-res__custom-input:focus-visible {
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
 }
 
 .final-res__submit-hint { font-size: 13px; color: #9ca3af; margin: 0; }

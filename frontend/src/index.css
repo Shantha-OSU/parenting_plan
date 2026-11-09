@@ -86,6 +86,11 @@ button:hover {
   border-color: #ffffff;
 }
 
+:focus-visible {
+  outline: 3px solid #4955a5;
+  outline-offset: 3px;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #485057;

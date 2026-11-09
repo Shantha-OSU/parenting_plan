@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { forwardRef, useState, useRef, useEffect, useId } from 'react';
 import { ChevronDown } from 'lucide-react';
 import './Dropdown.css';
 
@@ -30,6 +30,10 @@ export default function Dropdown({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
+  const optionRefs = useRef([]);
+  const generatedId = useId();
+  const dropdownId = id || `dropdown-${generatedId}`;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -45,27 +49,70 @@ export default function Dropdown({
     }
   }, [isOpen]);
 
-  // Close dropdown on Escape key
   useEffect(() => {
-    function handleEscape(event) {
-      if (event.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-      }
-    }
+    if (!isOpen || !options.length) return;
+    const selectedIndex = options.findIndex(option => option.value === value);
+    optionRefs.current[selectedIndex >= 0 ? selectedIndex : 0]?.focus();
+  }, [isOpen, options, value]);
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
+  const closeDropdown = (restoreFocus = false) => {
+    setIsOpen(false);
+    if (restoreFocus) {
+      requestAnimationFrame(() => buttonRef.current?.focus());
     }
-  }, [isOpen]);
+  };
 
   const handleToggle = () => {
-    setIsOpen(!isOpen);
+    if (isOpen) closeDropdown();
+    else setIsOpen(true);
+  };
+
+  const handleButtonKeyDown = (event) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (!isOpen) setIsOpen(true);
+      return;
+    }
+
+    if (event.key === 'Escape' && isOpen) {
+      event.preventDefault();
+      closeDropdown();
+    }
+  };
+
+  const handleOptionKeyDown = (event, index) => {
+    let nextIndex;
+    switch (event.key) {
+      case 'ArrowDown':
+        nextIndex = (index + 1) % options.length;
+        break;
+      case 'ArrowUp':
+        nextIndex = (index - 1 + options.length) % options.length;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = options.length - 1;
+        break;
+      case 'Escape':
+        event.preventDefault();
+        closeDropdown(true);
+        return;
+      case 'Tab':
+        closeDropdown();
+        return;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    optionRefs.current[nextIndex]?.focus();
   };
 
   const handleSelect = (optionValue) => {
     onChange?.(optionValue);
-    setIsOpen(false);
+    closeDropdown(true);
   };
 
   const selectedOption = options.find(opt => opt.value === value);
@@ -79,27 +126,32 @@ export default function Dropdown({
   return (
     <div className={dropdownClasses} ref={dropdownRef}>
       {label && (
-        <label className="dropdown__label" htmlFor={id}>
+        <label className="dropdown__label" htmlFor={dropdownId}>
           {label}
           {required && <span className="dropdown__label-required">*</span>}
         </label>
       )}
 
       <DropdownButton
-        id={id}
+        id={dropdownId}
+        buttonRef={buttonRef}
         text={displayText}
         isOpen={isOpen}
         onClick={handleToggle}
+        onKeyDown={handleButtonKeyDown}
+        aria-controls={`${dropdownId}-listbox`}
         hasValue={!!value}
         {...props}
       />
 
       {isOpen && (
-        <DropdownMenu>
-          {options.map((option) => (
+        <DropdownMenu id={`${dropdownId}-listbox`}>
+          {options.map((option, index) => (
             <DropdownItem
               key={option.value}
+              ref={element => { optionRefs.current[index] = element; }}
               onClick={() => handleSelect(option.value)}
+              onKeyDown={(event) => handleOptionKeyDown(event, index)}
               isSelected={option.value === value}
             >
               {option.label}
@@ -117,7 +169,7 @@ export default function Dropdown({
   );
 }
 
-function DropdownButton({ className, text, isOpen, hasValue, ...props }) {
+function DropdownButton({ className, text, isOpen, hasValue, buttonRef, ...props }) {
   const buttonClasses = [
     'dropdown__button',
     isOpen ? 'dropdown__button--open' : '',
@@ -128,6 +180,7 @@ function DropdownButton({ className, text, isOpen, hasValue, ...props }) {
   return (
     <button
       type="button"
+      ref={buttonRef}
       className={buttonClasses}
       aria-haspopup="listbox"
       aria-expanded={isOpen}
@@ -155,7 +208,7 @@ function DropdownMenu({ className, children, ...props }) {
   );
 }
 
-function DropdownItem({ className, isSelected, children, onClick, ...props }) {
+const DropdownItem = forwardRef(function DropdownItem({ className, isSelected, children, onClick, ...props }, ref) {
   const itemClasses = [
     'dropdown__item',
     isSelected ? 'dropdown__item--selected' : '',
@@ -165,6 +218,7 @@ function DropdownItem({ className, isSelected, children, onClick, ...props }) {
   return (
     <button
       type="button"
+      ref={ref}
       role="option"
       aria-selected={isSelected}
       data-slot="dropdown-item"
@@ -175,7 +229,7 @@ function DropdownItem({ className, isSelected, children, onClick, ...props }) {
       {children}
     </button>
   );
-}
+});
 
 function DropdownDivider({ className, ...props }) {
   return (

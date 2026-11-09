@@ -526,7 +526,11 @@
   font-size: 14px;
   width: 100%;
   box-sizing: border-box;
-  outline: none;
+}
+
+.comparison__custom-input:focus-visible {
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
 }
 
 .comparison__submit-row {

@@ -701,7 +701,8 @@
 }
 
 .schedule-scope-controls select:focus-visible {
-  outline: none;
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
   border-color: var(--primary-color, #2563eb);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #2563eb) 18%, transparent);
 }
