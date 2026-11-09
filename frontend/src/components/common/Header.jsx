@@ -17,12 +17,18 @@ export default function Header({
   return (
     <header className="header">
       <div className="header__top-bar">
-        <img
-          src={logo}
-          alt="ShareCare"
-          className="header__logo"
+        <button
+          type="button"
+          className="header__logo-button"
           onClick={handleLogoClick}
-        />
+          aria-label="Go to dashboard"
+        >
+          <img
+            src={logo}
+            alt=""
+            className="header__logo"
+          />
+        </button>
 
         <div className="header__right">
           {saved && (
