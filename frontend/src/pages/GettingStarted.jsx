@@ -406,7 +406,6 @@ export default function GettingStarted() {
                 value={caseFilingStatus}
                 onChange={handleFormChange('plan', 'userRole')}
                 error={caseFilingError}
-                flag={caseFilingFlag}
                 disclaimers={[
                     { disclaimer: "Please note: ShareCare cannot confirm if your answer is correct or if there is an active divorce, separation, or child support case.", disclaimerVariant: "info" }
                 ]}

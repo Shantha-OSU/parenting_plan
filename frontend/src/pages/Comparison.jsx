@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { buildApiUrl } from '../lib/apiClient';
@@ -541,9 +541,9 @@ export default function Comparison() {
   if (error) {
     return (
       <div className="comparison comparison--centered">
-        <AlertTriangle size={40} color="#f97316" />
+        <AlertTriangle size={40} color="#f97316" aria-hidden="true" />
         <p className="comparison__error">{error}</p>
-        <button className="comparison__back-btn" onClick={() => navigate('/review')}>Back to Review</button>
+        <Link className="comparison__back-btn" to="/review">Back to Review</Link>
       </div>
     );
   }
@@ -551,10 +551,10 @@ export default function Comparison() {
   if (caseStatus === 'waiting_for_coparent') {
     return (
       <div className="comparison comparison--centered">
-        <Users size={48} color="#14abdd" />
+        <Users size={48} color="#14abdd" aria-hidden="true" />
         <h2>Waiting for Co-parent</h2>
         <p>Your co-parent hasn't joined yet. Once they accept the invite, you'll see the comparison here.</p>
-        <button className="comparison__back-btn" onClick={() => navigate('/review')}>Back to Review</button>
+        <Link className="comparison__back-btn" to="/review">Back to Review</Link>
       </div>
     );
   }
@@ -603,13 +603,13 @@ export default function Comparison() {
       <>
       <div className="comparison">
         <div className="comparison__header">
-          <button className="comparison__nav-back" onClick={() => navigate('/review')}>
-            <ArrowLeft size={18} /> Review
-          </button>
+          <Link className="comparison__nav-back" to="/review">
+            <ArrowLeft size={18} aria-hidden="true" /> Review
+          </Link>
           <div>
             <h1 className="comparison__title">Final Parenting Plan Comparison</h1>
             <p className="comparison__subtitle">
-              <CheckCircle size={16} color="#22c55e" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+              <CheckCircle size={16} color="#22c55e" aria-hidden="true" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
               {agreedItems.length} agreed, {discussionItems.length} need discussion
             </p>
           </div>
@@ -649,7 +649,7 @@ export default function Comparison() {
                 className="comparison__download-btn"
                 onClick={() => setIsPrinting(true)}
               >
-                <Printer size={16} /> Print / Save PDF
+                <Printer size={16} aria-hidden="true" /> Print / Save PDF
               </button>
               <button
                 className="comparison__download-btn"
@@ -659,14 +659,14 @@ export default function Comparison() {
                 {restartStatus === 'saving' ? 'Restarting...' : 'Restart Comparison'}
               </button>
               {restartStatus === 'error' && (
-                <p className="comparison__submit-error">Failed to restart. Please try again.</p>
+                <p className="comparison__submit-error" role="alert">Failed to restart. Please try again.</p>
               )}
             </div>
           {activeTab === 'merged' && agreedItems.map((item) => (
             <div key={item.qKey} className="comparison__card comparison__agreed">
               <div className="comparison__question">{questionMap[item.qKey]?.qText || item.qKey}</div>
               <div className="comparison__answer-agreed">
-                <CheckCircle size={16} color="#22c55e" />
+                <CheckCircle size={16} color="#22c55e" aria-hidden="true" />
                 {renderAnswer(
                   item.answer,
                   isParent1 ? 'parent1' : 'parent2',
@@ -680,7 +680,7 @@ export default function Comparison() {
           {activeTab === 'discussion' && (
             <>
               <div className="comparison__discussion-banner">
-                <AlertTriangle size={20} color="#f97316" />
+                <AlertTriangle size={20} color="#f97316" aria-hidden="true" />
                 <p>These items still need agreement. Please discuss them together or consider seeking mediation support.</p>
               </div>
               {discussionItems.map((item) => (
@@ -704,7 +704,7 @@ export default function Comparison() {
                           )}
                         </div>
                       </div>
-                      <div className="comparison__answer-divider"><AlertTriangle size={16} color="#f97316" /></div>
+                      <div className="comparison__answer-divider"><AlertTriangle size={16} color="#f97316" aria-hidden="true" /></div>
                       <div className="comparison__answer-col">
                         <span className="comparison__parent-label">{parentNames.parent2}'s answer</span>
                         <div className="comparison__answer-value">
@@ -754,13 +754,13 @@ export default function Comparison() {
   return (
     <div className="comparison">
       <div className="comparison__header">
-        <button className="comparison__nav-back" onClick={() => navigate('/review')}>
-          <ArrowLeft size={18} /> Review
-        </button>
+        <Link className="comparison__nav-back" to="/review">
+          <ArrowLeft size={18} aria-hidden="true" /> Review
+        </Link>
         <div>
           <h1 className="comparison__title">Parenting Plan Comparison</h1>
           <p className="comparison__subtitle">
-            <CheckCircle size={16} color="#22c55e" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+            <CheckCircle size={16} color="#22c55e" aria-hidden="true" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
             {agreed.length} of {diff.length} questions in agreement
           </p>
         </div>
@@ -810,7 +810,7 @@ export default function Comparison() {
                 <div key={item.questionKey} className="comparison__card comparison__agreed">
                   <div className="comparison__question">{questionMap[item.questionKey]?.qText || item.questionKey}</div>
                   <div className="comparison__answer-agreed">
-                    <CheckCircle size={16} color="#22c55e" />
+                    <CheckCircle size={16} color="#22c55e" aria-hidden="true" />
                     {renderAnswer(
                       isParent1 ? item.parent1Answer : item.parent2Answer,
                       isParent1 ? 'parent1' : 'parent2',
@@ -856,7 +856,7 @@ export default function Comparison() {
                           <span className="comparison__parent-label">{parent1Name} answer</span>
                           <div className="comparison__answer-value">{renderAnswer(item.parent1Answer, 'parent1', item.questionKey)}</div>
                         </div>
-                      <div className="comparison__answer-divider"><AlertTriangle size={16} color="#f97316" /></div>
+                      <div className="comparison__answer-divider"><AlertTriangle size={16} color="#f97316" aria-hidden="true" /></div>
                       <div className="comparison__answer-col">
                         <span className="comparison__parent-label">{parent2Name} answer</span>
                         <div className="comparison__answer-value">{renderAnswer(item.parent2Answer, 'parent2', item.questionKey)}</div>
@@ -907,8 +907,11 @@ export default function Comparison() {
                   <p className="comparison__submit-hint">Resolve all differences above to continue.</p>
                 )}
                 {submitStatus === 'error' && (
-                  <p className="comparison__submit-error">Failed to send. Please try again.</p>
+                  <p className="comparison__submit-error" role="alert">Failed to send. Please try again.</p>
                 )}
+                <p className="sr-only" aria-live="polite">
+                  {submitStatus === 'saving' ? 'Sending resolutions to your co-parent.' : submitStatus === 'saved' ? 'Resolutions sent.' : ''}
+                </p>
               </div>
             )}
           </div>

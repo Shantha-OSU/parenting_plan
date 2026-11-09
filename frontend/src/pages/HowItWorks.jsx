@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   CheckCircle2,
@@ -22,8 +22,6 @@ const benefits = [
 ];
 
 export default function HowItWorks() {
-  const navigate = useNavigate();
-
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -33,20 +31,20 @@ export default function HowItWorks() {
       <div className="how-it-works__pattern" aria-hidden="true" />
 
       <header className="how-it-works__header">
-        <button
+        <Link
+          to="/"
           className="how-it-works__logo-link"
-          onClick={() => navigate('/')}
           aria-label="Return to ShareCare home"
         >
           <img src={logo} alt="ShareCare" />
-        </button>
+        </Link>
         <div className="how-it-works__header-actions">
-          <button className="how-it-works__sign-in" onClick={() => navigate('/signin')}>
+          <Link className="how-it-works__sign-in" to="/signin">
             Sign In
-          </button>
-          <button className="how-it-works__header-cta" onClick={() => navigate('/signup')}>
+          </Link>
+          <Link className="how-it-works__header-cta" to="/signup">
             Get Started
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -61,10 +59,10 @@ export default function HowItWorks() {
             ShareCare is a free tool, guiding parents through the process of creating a thoughtful
             parenting plan—one step at a time, with your child(ren) at the center.
           </p>
-          <button className="how-it-works__primary-cta" onClick={() => navigate('/signup')}>
+          <Link className="how-it-works__primary-cta" to="/signup">
             Create your plan
             <ArrowRight size={20} aria-hidden="true" />
-          </button>
+          </Link>
         </section>
 
         <section className="how-it-works__steps" aria-labelledby="steps-heading">
@@ -178,19 +176,19 @@ export default function HowItWorks() {
         <section className="how-it-works__bottom-cta">
           <h2>Ready to take the first step?</h2>
           <p>Start building a parenting plan that works for your family.</p>
-          <button className="how-it-works__primary-cta" onClick={() => navigate('/signup')}>
+          <Link className="how-it-works__primary-cta" to="/signup">
             Get started for free
             <ArrowRight size={20} aria-hidden="true" />
-          </button>
+          </Link>
         </section>
       </main>
 
       <footer className="how-it-works__footer">
         <span>&copy; 2026 Action for Children. All rights reserved.</span>
         <div>
-          <button onClick={() => navigate('/privacy-policy')}>Privacy Policy</button>
-          <button onClick={() => navigate('/terms-of-service')}>Terms of Service</button>
-          <button onClick={() => navigate('/contact-support')}>Contact Support</button>
+          <Link to="/privacy-policy">Privacy Policy</Link>
+          <Link to="/terms-of-service">Terms of Service</Link>
+          <Link to="/contact-support">Contact Support</Link>
         </div>
       </footer>
     </div>

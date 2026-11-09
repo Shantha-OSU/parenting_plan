@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { CheckCircle, Download, UserPlus, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, Download, UserPlus, Pencil, ChevronDown, ChevronUp, Flag } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/common/card';
 import Disclaimer from '../components/forms/Disclaimer';
 import InviteModal from '../components/common/InviteModal';
@@ -27,6 +27,25 @@ const SECTION_META = {
   'information-sharing': { label: 'Information Sharing', route: '/informationsharing' },
   'tax-exemptions': { label: 'Tax Exemptions', route: '/tax-exemptions' },
 };
+
+const FLAG_KEY_ALIASES = {
+  'personalInfo.userRole': 'caseFilingStatus',
+  'getting-started.children': 'children',
+  'taxExemptions.parentRole': 'taxParentalRole',
+  'taxExemptions.claimingChildren': 'taxClaimingChildren',
+  'parentingTimeAndCommunication.agreeToTransportationPolicy': 'transportationAgreement',
+  'parentingTimeAndCommunication.agreeToActivityPolicy': 'activitiesAndScheduling',
+};
+
+function isResponseFlagged(qKey, flags = {}) {
+  const field = String(qKey).split('.').pop();
+  return Boolean(
+    flags[qKey]
+    || flags[`question-${qKey}`]
+    || flags[field]
+    || flags[FLAG_KEY_ALIASES[qKey]],
+  );
+}
 
 // Formats stored answer values using the question's human-readable option labels.
 function annotateParentReferences(text, isParent2) {
@@ -84,6 +103,16 @@ function groupResponsesBySection(answers = [], questionsByKey = {}) {
     });
   });
   return grouped;
+}
+
+function applyQuestionFlags(groupedResponses, flags = {}) {
+  Object.values(groupedResponses).forEach((responses) => {
+    responses.forEach((response) => {
+      response.isFlagged = Boolean(
+        response.isFlagged || isResponseFlagged(response.qKey, flags)
+      );
+    });
+  });
 }
 
 /* Parenting time & Information Sharing question text */
@@ -333,17 +362,25 @@ function SectionBlock({ sectionKey, responses, onEdit, onEditQuestion, isOpen, o
             <ul className="review__answer-list">
               {responses.map((r, i) => (
                 <li key={r.qKey || i} className="review__answer-item">
-                  {supportsQuestionEditing && isEditingQuestions ? (
-                    <button
-                      className="review__answer-key review__answer-question-btn"
-                      onClick={() => onEditQuestion(r.qKey)}
-                      aria-label={`Edit ${r.label}`}
-                    >
-                      {r.label}
-                    </button>
-                  ) : (
-                    <span className="review__answer-key">{r.label}</span>
-                  )}
+                  <div className="review__answer-question">
+                    {supportsQuestionEditing && isEditingQuestions ? (
+                      <button
+                        className="review__answer-key review__answer-question-btn"
+                        onClick={() => onEditQuestion(r.qKey)}
+                        aria-label={`Edit ${r.label}`}
+                      >
+                        {r.label}
+                      </button>
+                    ) : (
+                      <span className="review__answer-key">{r.label}</span>
+                    )}
+                    {r.isFlagged && (
+                      <span className="review__flag-badge" aria-label="Flagged for review">
+                        <Flag size={14} aria-hidden="true" />
+                        Flagged
+                      </span>
+                    )}
+                  </div>
                   <span className="review__answer-value">
                     {formatAnswer(r.answer, r.question, isParent2, userRole)}
                   </span>
@@ -467,6 +504,7 @@ export default function Review() {
   const groupedResponses = groupResponsesBySection(reviewPlan.answers || [], questionsByKey);
   addCustomSectionResponses(groupedResponses, reviewPlan);
   addStateSectionResponses(groupedResponses, reviewPlan);
+  applyQuestionFlags(groupedResponses, state.flags);
   const designerState = {
     plan: reviewPlan,
     parents: {
