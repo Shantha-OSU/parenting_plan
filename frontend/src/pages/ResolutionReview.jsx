@@ -206,15 +206,17 @@ export default function ResolutionReview() {
               <div className="res-review__actions">
                 <button
                   className={`res-review__btn res-review__btn--accept ${accepted === true ? 'res-review__btn--active' : ''}`}
+                  aria-pressed={accepted === true}
                   onClick={() => setReviews((prev) => ({ ...prev, [r.qKey]: true }))}
                 >
-                  <CheckCircle size={15} /> Accept
+                  <CheckCircle size={15} aria-hidden="true" /> Accept
                 </button>
                 <button
                   className={`res-review__btn res-review__btn--flag ${accepted === false ? 'res-review__btn--active-flag' : ''}`}
+                  aria-pressed={accepted === false}
                   onClick={() => setReviews((prev) => ({ ...prev, [r.qKey]: false }))}
                 >
-                  <Flag size={15} /> Flag for Discussion
+                  <Flag size={15} aria-hidden="true" /> Flag for Discussion
                 </button>
               </div>
             </div>

@@ -236,6 +236,28 @@ export default function Comparison() {
   const [standardComparisonTemplate, setStandardComparisonTemplate] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
+  const handleTabKeyDown = (event) => {
+    const tabs = [...event.currentTarget.parentElement.querySelectorAll('[role="tab"]')];
+    const currentIndex = tabs.indexOf(event.currentTarget);
+    let nextIndex;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = tabs.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    tabs[nextIndex].focus();
+    tabs[nextIndex].click();
+  };
+
   useEffect(() => {
     if (!isPrinting) return undefined;
     const timer = setTimeout(() => {
@@ -592,21 +614,36 @@ export default function Comparison() {
             </p>
           </div>
         </div>
-        <div className="comparison__tabs">
+        <div className="comparison__tabs" role="tablist" aria-label="Comparison views">
           <button
+            id="comparison-tab-agreed"
+            role="tab"
+            aria-selected={activeTab === 'merged'}
+            aria-controls="comparison-panel-agreed"
             className={`comparison__tab ${activeTab === 'merged' ? 'comparison__tab--active' : ''}`}
             onClick={() => setActiveTab('merged')}
+            onKeyDown={handleTabKeyDown}
           >
             Agreed ({agreedItems.length})
           </button>
           <button
+            id="comparison-tab-discussion"
+            role="tab"
+            aria-selected={activeTab === 'discussion'}
+            aria-controls="comparison-panel-discussion"
             className={`comparison__tab ${activeTab === 'discussion' ? 'comparison__tab--active' : ''}`}
             onClick={() => setActiveTab('discussion')}
+            onKeyDown={handleTabKeyDown}
           >
             Needs Discussion ({discussionItems.length})
           </button>
         </div>
-        <div className="comparison__content">
+        <div
+          id={activeTab === 'merged' ? 'comparison-panel-agreed' : 'comparison-panel-discussion'}
+          role="tabpanel"
+          aria-labelledby={activeTab === 'merged' ? 'comparison-tab-agreed' : 'comparison-tab-discussion'}
+          className="comparison__content"
+        >
           <div className="comparison__submit-row comparison__final-actions">
               <button
                 className="comparison__download-btn"
@@ -729,22 +766,37 @@ export default function Comparison() {
         </div>
       </div>
 
-      <div className="comparison__tabs">
+      <div className="comparison__tabs" role="tablist" aria-label="Comparison views">
         <button
+          id="comparison-tab-agreed"
+          role="tab"
+          aria-selected={activeTab === 'merged'}
+          aria-controls="comparison-panel-agreed"
           className={`comparison__tab ${activeTab === 'merged' ? 'comparison__tab--active' : ''}`}
           onClick={() => setActiveTab('merged')}
+          onKeyDown={handleTabKeyDown}
         >
           Agreed ({agreed.length})
         </button>
         <button
+          id="comparison-tab-differences"
+          role="tab"
+          aria-selected={activeTab === 'differences'}
+          aria-controls="comparison-panel-differences"
           className={`comparison__tab ${activeTab === 'differences' ? 'comparison__tab--active' : ''}`}
           onClick={() => setActiveTab('differences')}
+          onKeyDown={handleTabKeyDown}
         >
           Differences ({disagreed.length})
         </button>
       </div>
 
-      <div className="comparison__content">
+      <div
+        id={activeTab === 'merged' ? 'comparison-panel-agreed' : 'comparison-panel-differences'}
+        role="tabpanel"
+        aria-labelledby={activeTab === 'merged' ? 'comparison-tab-agreed' : 'comparison-tab-differences'}
+        className="comparison__content"
+      >
         {activeTab === 'merged' && (
           <div>
             <div className="comparison__section-header">
