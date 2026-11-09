@@ -31,6 +31,7 @@ export default function RadioQuestion({
   error,
   conditionalInput,
   disclaimers,
+  autoFocus = false,
 }) {
   return (
     <Card>
@@ -54,7 +55,7 @@ export default function RadioQuestion({
               onChange={(e) => onChange(e.target.value)}
               label={option.label}
               description={option.description}
-              autoFocus={index === Math.max(options.findIndex(option => option.value === value), 0)}
+              autoFocus={autoFocus && index === Math.max(options.findIndex(option => option.value === value), 0)}
             />
           ))}
 

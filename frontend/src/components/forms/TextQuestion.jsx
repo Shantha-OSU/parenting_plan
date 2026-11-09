@@ -32,6 +32,7 @@ export default function TextQuestion({
   autoComplete,
   className,
   flag,
+  autoFocus = false,
 }) {
   return (
     <Card>
@@ -54,7 +55,7 @@ export default function TextQuestion({
           placeholder={placeholder}
           error={error}
           required={required}
-          autoFocus
+          autoFocus={autoFocus}
           autoComplete={autoComplete}
           className={className}
         />

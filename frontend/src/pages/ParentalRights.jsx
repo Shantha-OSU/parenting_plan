@@ -138,6 +138,7 @@ export default function ParentalRights() {
                                         flag={childrenApplicationFlag}
                                         error={errors.currAnswer}
                                         options={question.options}
+                                        autoFocus
                                     />
                                     {question.qDisclaimer && (
                                         <Disclaimer variant="warning">
@@ -159,6 +160,7 @@ export default function ParentalRights() {
                                         flag={childrenApplicationFlag}
                                         error={errors.currAnswer}
                                         required
+                                        autoFocus
                                     />
                                     {question.qIntro && (
                                         <Disclaimer variant="info">

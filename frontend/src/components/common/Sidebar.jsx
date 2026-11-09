@@ -88,7 +88,15 @@ export default function Sidebar({ isCollapsed, onToggle }) {
           <div className="sidebar__progress-text">
             Step {currentStepIndex + 1} of {navItems.length}
           </div>
-          <div className="sidebar__progress-bar">
+          <div
+            className="sidebar__progress-bar"
+            role="progressbar"
+            aria-label="Form completion progress"
+            aria-valuemin={1}
+            aria-valuemax={navItems.length}
+            aria-valuenow={currentStepIndex + 1}
+            aria-valuetext={`Step ${currentStepIndex + 1} of ${navItems.length}`}
+          >
             <div
               className="sidebar__progress-fill"
               style={{ width: `${(currentStepIndex / (navItems.length - 1)) * 100}%` }}
