@@ -58,7 +58,7 @@
 
 /* Modifier - placeholder state */
 .dropdown__button--placeholder {
-  color: #999;
+  color: #6b7280;
 }
 
 /* Element - button text */
@@ -155,7 +155,7 @@
 .dropdown__empty {
   padding: 1rem;
   text-align: center;
-  color: #999;
+  color: #6b7280;
   font-size: 0.9rem;
   font-style: italic;
 }

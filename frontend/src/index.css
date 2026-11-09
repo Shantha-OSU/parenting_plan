@@ -17,7 +17,8 @@
   --input-border-focus: #14abdd;
   --input-background: transparent;
   --error-color: #ed1c24;
-  --help-text-color: #888;
+  --help-text-color: #6b7280;
+  --primary-action-color: #087da2;
   --flagged-item-color: #f37b35;
 
   /* Spacing */
@@ -28,7 +29,7 @@
 
 a {
   font-weight: 500;
-  color: #4955a5;
+  color: #087da2;
   text-decoration: inherit;
 }
 a:hover {
@@ -99,15 +100,15 @@ button:hover {
     --input-background: #fff;
   }
   a:hover {
-    color: #14abdd;
+    color: #7dd3fc;
   }
   button {
     color: #ffffff;
-    background-color: #14abdd;
+    background-color: #087da2;
   }
   button:hover {
-    color: #ffffff92;
-    background-color: #14abdda8;
+    color: #ffffff;
+    background-color: #075f7b;
   }
 }
 @media (prefers-color-scheme: dark) {
@@ -116,7 +117,7 @@ button:hover {
     background-color: #1f2937;
     --input-border: #374151;
     --input-background: #1f2937;
-    --help-text-color: #9ca3af;
+    --help-text-color: #d1d5db;
   }
 
   a {
@@ -129,7 +130,7 @@ button:hover {
 
   button {
     color: #ffffff;
-    background-color: #14abdd;
+    background-color: #087da2;
   }
 
   button:hover {
