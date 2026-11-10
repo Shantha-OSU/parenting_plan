@@ -70,7 +70,19 @@ function formatAnswer(answer, question, isParent2, userRole) {
 
   if (question?.childAnswers) {
     const answeringParent = isParent2 ? 'parent2' : 'parent1';
-    return annotateParentReferences(answerText(answer, question, answeringParent, true), isParent2);
+    const formattedAnswer = annotateParentReferences(
+      answerText(answer, question, answeringParent, true),
+      isParent2,
+    );
+    return (
+      <span>
+        {formattedAnswer.split('\n').map((line, index) => (
+          <span className="review__answer-line" key={`${line}-${index}`}>
+            {line}
+          </span>
+        ))}
+      </span>
+    );
   }
   if (Array.isArray(answer)) return annotateParentReferences(answerText(answer, question), isParent2);
   return annotateParentReferences(formatValue(answer), isParent2);

@@ -210,6 +210,10 @@
   overflow-wrap: anywhere;
 }
 
+.review__answer-line {
+  display: block;
+}
+
 .review__answer-question-btn {
   border: 0;
   padding: 0;

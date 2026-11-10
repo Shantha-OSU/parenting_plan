@@ -75,7 +75,7 @@ export default function SignIn() {
   };
 
   return (
-    <div className="auth-page">
+    <main className="auth-page">
       <div className="auth-container">
         <div className="auth-logo">
           <img src={logo} alt="ShareCare" />
@@ -151,6 +151,6 @@ export default function SignIn() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

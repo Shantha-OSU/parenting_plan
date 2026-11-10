@@ -53,6 +53,7 @@ export default function ParentingTimeAndCommunication() {
     const errors = state.timeAndCommunication?.errors ?? {};
     const formDataRef = useRef(formData);
     formDataRef.current = formData;
+    const scheduleSaveTimerRef = useRef(null);
     const children = Array.isArray(state.plan?.children) ? state.plan.children : [];
     const scheduleScope = formData.scheduleScope || 'all';
     const childOptions = children.map((child, index) => ({
@@ -78,6 +79,37 @@ export default function ParentingTimeAndCommunication() {
     const activeSchoolSchedule = scheduleScope === 'byChild'
         ? formData.schoolSchedulesByChild?.[activeChildId] || {}
         : formData.schoolSchedule;
+
+    const queueScheduleSave = useCallback((payload) => {
+        const planId = state.plan?._id;
+        if (!planId) return;
+
+        clearTimeout(scheduleSaveTimerRef.current);
+        scheduleSaveTimerRef.current = setTimeout(async () => {
+            try {
+                const user = auth.currentUser;
+                if (!user) throw new Error('You must be signed in to save the schedule');
+                const idToken = await user.getIdToken();
+                const response = await fetch(buildApiUrl(`api/plan/${planId}/sections`), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `******`,
+                    },
+                    body: JSON.stringify({
+                        section: 'parentingTimeAndCommunication',
+                        answers: { ...formDataRef.current, ...payload },
+                    }),
+                });
+                if (!response.ok) throw new Error(`Failed to save schedule (${response.status})`);
+                dispatch({ type: 'UPDATE_SECTION', section: 'plan', payload: await response.json() });
+            } catch (error) {
+                console.error(error.message);
+            }
+        }, 400);
+    }, [dispatch, state.plan?._id]);
+
+    useEffect(() => () => clearTimeout(scheduleSaveTimerRef.current), []);
 
     // Separate error state for radio groups (not stored in formData.errors)
     const [communicationError, setCommunicationError] = useState('');
@@ -138,6 +170,7 @@ export default function ParentingTimeAndCommunication() {
             section: 'timeAndCommunication',
             payload
         });
+        queueScheduleSave(payload);
         if (errors.parentingSchedule) {
             dispatch({ type: 'UPDATE_SECTION', section: 'timeAndCommunication', payload: { errors: { ...errors, parentingSchedule: '' } } });
         }
@@ -152,6 +185,7 @@ export default function ParentingTimeAndCommunication() {
             section: 'timeAndCommunication',
             payload
         });
+        queueScheduleSave(payload);
     }, [dispatch, scheduleScope, activeChildId, formData.holidaySchedulesByChild]);
 
     const handleSchoolScheduleChange = useCallback((schoolSchedule) => {
@@ -163,6 +197,7 @@ export default function ParentingTimeAndCommunication() {
             section: 'timeAndCommunication',
             payload
         });
+        queueScheduleSave(payload);
     }, [dispatch, scheduleScope, activeChildId, formData.schoolSchedulesByChild]);
 
     const handleScheduleScopeChange = (event) => {
@@ -177,14 +212,18 @@ export default function ParentingTimeAndCommunication() {
                 holidaySchedulesByChild[childId] ??= formData.holidaySchedule || {};
                 schoolSchedulesByChild[childId] ??= formData.schoolSchedule || {};
             });
-            dispatch({ type: 'UPDATE_SECTION', section: 'timeAndCommunication', payload: {
+            const payload = {
                 scheduleScope: nextScope,
                 parentingSchedulesByChild,
                 holidaySchedulesByChild,
                 schoolSchedulesByChild,
-            } });
+            };
+            dispatch({ type: 'UPDATE_SECTION', section: 'timeAndCommunication', payload });
+            queueScheduleSave(payload);
         } else {
-            dispatch({ type: 'UPDATE_SECTION', section: 'timeAndCommunication', payload: { scheduleScope: nextScope } });
+            const payload = { scheduleScope: nextScope };
+            dispatch({ type: 'UPDATE_SECTION', section: 'timeAndCommunication', payload });
+            queueScheduleSave(payload);
         }
     };
 
