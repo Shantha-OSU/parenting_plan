@@ -118,5 +118,11 @@
 
   .footer__button--next {
     margin-left: 0;
+    margin-right: 0;
+  }
+
+  .footer__button--back {
+    margin-left: 0;
+    margin-right: 0;
   }
 }

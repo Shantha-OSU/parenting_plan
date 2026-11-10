@@ -1,12 +1,14 @@
 import './Header.css';
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 import logo from '../../assets/logos/ShareCare_Symmetrical Diamond Logo (1120 x 310 px).png';
 
 export default function Header({
   saved = false,
   user = null,
   onSignOut = null,
+  onMenuToggle = null,
+  isMenuOpen = false,
 }) {
   const navigate = useNavigate();
 
@@ -25,6 +27,18 @@ export default function Header({
         />
 
         <div className="header__right">
+          {onMenuToggle && (
+            <button
+              type="button"
+              className="header__menu-btn"
+              onClick={onMenuToggle}
+              aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={isMenuOpen}
+            >
+              <Menu size={22} />
+            </button>
+          )}
+
           {saved && (
             <div className="header__saved">
               <svg className="header__saved-icon" viewBox="0 0 16 16" fill="none">

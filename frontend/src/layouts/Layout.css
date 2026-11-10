@@ -5,6 +5,10 @@
   background-color: #f9fafb;
 }
 
+.layout__sidebar-backdrop {
+  display: none;
+}
+
 .layout__main {
   flex: 1;
   display: flex;
@@ -52,5 +56,25 @@
 
   .layout__content {
     padding: 1rem;
+  }
+
+  .layout__sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: rgba(15, 23, 42, 0.38);
+    cursor: pointer;
+  }
+
+  /* Keep the dismiss backdrop from inheriting the global button hover color. */
+  .layout__sidebar-backdrop:hover,
+  .layout__sidebar-backdrop:focus-visible {
+    background: rgba(15, 23, 42, 0.38) !important;
+    border-color: transparent !important;
+    outline: none;
   }
 }
