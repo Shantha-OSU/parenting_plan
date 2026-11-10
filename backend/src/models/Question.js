@@ -42,7 +42,7 @@ const questionSchema = new mongoose.Schema({
   },
   qIntro: {
     type: String,
-    default: "blank"
+    default: ''
   },
   qDisclaimer: {
     type: String,
@@ -86,6 +86,11 @@ const questionSchema = new mongoose.Schema({
   comparisonConflictValues: {
     type: [String],
     default: undefined
+  },
+  appliesToGroup: {
+    type: String,
+    enum: ['married', 'not_married', ''],
+    default: ''
   },
 
   // the followings field is dependant on the type of question

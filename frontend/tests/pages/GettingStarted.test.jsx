@@ -34,7 +34,9 @@ const fillValidForm = async () => {
   await userEvent.type(document.querySelector('#firstParentLastName'), 'Doe')
   await userEvent.type(document.querySelector('#firstParentPhone'), '555-555-5555')
   await userEvent.type(document.querySelector('#firstParentAddress'), '123 Main St, Columbus, OH 43215')
+  await userEvent.click(document.querySelector('input[name="currentCircumstance"][value="married"]'))
   await userEvent.click(document.querySelector('input[name="caseFilingStatus"][value="parent1/petitioner1/plaintiff"]'))
+  await userEvent.click(document.querySelector('input[name="courtCustodyOrderIssued"][value="no"]'))
   await userEvent.type(document.querySelector('#child-1-firstName'), 'Alex')
   await userEvent.type(document.querySelector('#child-1-lastName'), 'Doe')
   fireEvent.change(document.querySelector('#child-1-dateOfBirth'), { target: { value: '2015-06-15' } })
@@ -263,7 +265,7 @@ describe('GettingStarted', () => {
 
   it('displays the case filing question', () => {
     renderWithRouter(<GettingStarted />)
-    expect(screen.getByText(/Did you file the divorce, separation, or child custody case/i)).toBeInTheDocument()
+    expect(screen.getByText(/Did you file the divorce, separation, custody, paternity, or parenting time petition/i)).toBeInTheDocument()
   })
 
   it('renders all four case filing status options', () => {
@@ -306,6 +308,29 @@ describe('GettingStarted', () => {
     await userEvent.click(no)
     expect(no).toBeChecked()
     expect(yes).not.toBeChecked()
+  })
+
+  it('shows the custody recipient question only when a custody order is reported and clears it when changed to No', async () => {
+    renderWithRouter(<GettingStarted />)
+    const yes = document.querySelector('input[name="courtCustodyOrderIssued"][value="yes"]')
+    const no = document.querySelector('input[name="courtCustodyOrderIssued"][value="no"]')
+
+    expect(yes).toBeInTheDocument()
+    expect(no).toBeInTheDocument()
+    expect(screen.queryByText('Which parent was granted custody of the child(ren)?')).not.toBeInTheDocument()
+
+    await userEvent.click(yes)
+    expect(screen.getByText('Which parent was granted custody of the child(ren)?')).toBeInTheDocument()
+
+    const grantedToMe = document.querySelector('input[name="custodyGrantedTo"][value="me"]')
+    await userEvent.click(grantedToMe)
+    expect(grantedToMe).toBeChecked()
+
+    await userEvent.click(no)
+    expect(screen.queryByText('Which parent was granted custody of the child(ren)?')).not.toBeInTheDocument()
+
+    await userEvent.click(yes)
+    expect(document.querySelector('input[name="custodyGrantedTo"][value="me"]')).not.toBeChecked()
   })
 
   // ─── Children Section — Initial State ────────────────────────────────────

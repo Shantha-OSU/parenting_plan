@@ -27,6 +27,37 @@ const policyAgreementOptions = [
 ];
 
 export const CUSTOM_COMPARISON_QUESTIONS = {
+  'getting-started.currentCircumstance': {
+    qText: 'Which situation fits your current circumstance?',
+    options: [
+      { value: 'married', label: 'I am going through the process of a divorce, dissolution of marriage, or legal separation.' },
+      { value: 'never_married_seeking_custody', label: 'I was never married to my co-parent, and I have or am seeking legal custody of our child(ren).' },
+      { value: 'never_married_seeking_parenting_time', label: 'I was never married to my co-parent, and I want to establish parenting time with our child(ren).' },
+    ],
+  },
+  'getting-started.caseFilingStatus': {
+    qText: 'Did you file the divorce, separation, custody, paternity, or parenting time petition that resulted in this parenting plan?',
+    options: [
+      { value: 'parent1/petitioner1/plaintiff', label: 'Yes, it was me' },
+      { value: 'parent2/petitioner2/defendant', label: 'No, my co-parent filed' },
+      { value: 'no_case', label: 'No case has been filed yet by either co-parent' },
+      { value: 'flagged', label: "I'm not sure" },
+    ],
+  },
+  'getting-started.courtCustodyOrderIssued': {
+    qText: 'Has an official custody order been issued by the court regarding the child(ren)?',
+    options: [
+      { value: 'yes', label: 'Yes' },
+      { value: 'no', label: 'No' },
+    ],
+  },
+  'getting-started.custodyGrantedTo': {
+    qText: 'Which parent was granted custody of the child(ren)?',
+    options: [
+      { value: 'me', label: 'Me' },
+      { value: 'coparent', label: 'My co-parent' },
+    ],
+  },
   school_address_parent: {
     qText: 'Which parent will be the school-address parent?',
     options: schoolAddressOptions,

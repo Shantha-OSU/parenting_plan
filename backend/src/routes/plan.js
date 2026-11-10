@@ -7,6 +7,17 @@ const User = require('../models/User');
 const verifyToken = require('../middleware/verifyToken');
 const { getFirstName } = require('../utils/nameUtils');
 
+function getCircumstanceGroup(currentCircumstance) {
+  if (currentCircumstance === 'married') return 'married';
+  if ([
+    'never_married_seeking_custody',
+    'never_married_seeking_parenting_time',
+  ].includes(currentCircumstance)) {
+    return 'not_married';
+  }
+  return null;
+}
+
 // POST /api/plan - Start a new plan
 // Optional body: { caseId } — when provided (co-parent accept flow), the new plan
 // is linked to the existing Case rather than creating a fresh one.
@@ -45,12 +56,38 @@ router.post('/', verifyToken, async (req, res) => {
             'parent1/petitioner1/plaintiff': 'parent2/petitioner2/defendant',
             'parent2/petitioner2/defendant': 'parent1/petitioner1/plaintiff',
           };
-          const oppositeResidentialParent = {
-            yes: 'no',
-            no: 'yes',
+          const oppositeCaseFilingStatus = {
+            'parent1/petitioner1/plaintiff': 'parent2/petitioner2/defendant',
+            'parent2/petitioner2/defendant': 'parent1/petitioner1/plaintiff',
           };
+          const oppositeCustodyRecipient = {
+            me: 'coparent',
+            coparent: 'me',
+          };
+          const legacyUserRole = p1Plan?.userRole ?? '';
+          const parent1CurrentCircumstance = p1Plan?.currentCircumstance || (
+            ['married', 'never_married_seeking_custody', 'never_married_seeking_parenting_time']
+              .includes(legacyUserRole)
+              ? legacyUserRole
+              : ''
+          );
+          const parent1CaseFilingStatus = p1Plan?.caseFilingStatus || (
+            [
+              'parent1/petitioner1/plaintiff',
+              'parent2/petitioner2/defendant',
+              'no_case',
+              'flagged',
+            ].includes(legacyUserRole)
+              ? legacyUserRole
+              : ''
+          );
           plan.userRole = oppositeUserRole[p1Plan?.userRole] ?? p1Plan?.userRole ?? '';
-          plan.residentialParent = oppositeResidentialParent[p1Plan?.residentialParent] ?? p1Plan?.residentialParent ?? '';
+          plan.currentCircumstance = parent1CurrentCircumstance;
+          plan.caseFilingStatus = oppositeCaseFilingStatus[parent1CaseFilingStatus] ?? parent1CaseFilingStatus;
+          plan.courtCustodyOrderIssued = p1Plan?.courtCustodyOrderIssued ?? '';
+          plan.custodyGrantedTo = p1Plan?.courtCustodyOrderIssued === 'yes'
+            ? oppositeCustodyRecipient[p1Plan?.custodyGrantedTo] ?? p1Plan?.custodyGrantedTo ?? ''
+            : '';
           plan.parentingTimeAndCommunication = {
             parentingSchedule: p1Plan?.parentingTimeAndCommunication?.parentingSchedule ?? {},
             holidaySchedule: p1Plan?.parentingTimeAndCommunication?.holidaySchedule ?? {},
@@ -302,7 +339,22 @@ router.post('/:planId/information', verifyToken, async (req, res) => {
     if (!plan || plan.userID !== req.user.uid) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    const { parentFName, parentLName, parentAge, phone, streetAddress, addressLine2, city, state, zipCode, aggregateData, userRole, residentialParent} = req.body;
+    const {
+      parentFName,
+      parentLName,
+      parentAge,
+      phone,
+      streetAddress,
+      addressLine2,
+      city,
+      state,
+      zipCode,
+      aggregateData,
+      currentCircumstance,
+      caseFilingStatus,
+      courtCustodyOrderIssued,
+      custodyGrantedTo,
+    } = req.body;
     plan.parentFName = parentFName;
     plan.parentLName = parentLName;
     plan.parentAge = parentAge;
@@ -315,9 +367,29 @@ router.post('/:planId/information', verifyToken, async (req, res) => {
     if (aggregateData !== undefined) {
       plan.aggregateData = aggregateData;
     }
-    plan.userRole = userRole;
-    plan.isParent2 = userRole === 'parent2/petitioner2/defendant';
-    plan.residentialParent = residentialParent;
+    if (currentCircumstance !== undefined) {
+      const previousCircumstanceGroup = getCircumstanceGroup(
+        plan.currentCircumstance || plan.userRole,
+      );
+      const nextCircumstanceGroup = getCircumstanceGroup(currentCircumstance);
+      if (nextCircumstanceGroup && previousCircumstanceGroup !== nextCircumstanceGroup) {
+        const circumstanceSpecificQuestions = await Question.find({
+          appliesToGroup: { $in: ['married', 'not_married'] },
+        }).select('qKey appliesToGroup');
+        const inapplicableQuestionKeys = new Set(
+          circumstanceSpecificQuestions
+            .filter((question) => question.appliesToGroup !== nextCircumstanceGroup)
+            .map((question) => question.qKey),
+        );
+        plan.answers = plan.answers.filter(
+          (savedAnswer) => !inapplicableQuestionKeys.has(savedAnswer.qKey),
+        );
+      }
+      plan.currentCircumstance = currentCircumstance;
+    }
+    plan.caseFilingStatus = caseFilingStatus;
+    plan.courtCustodyOrderIssued = courtCustodyOrderIssued;
+    plan.custodyGrantedTo = courtCustodyOrderIssued === 'yes' ? custodyGrantedTo : '';
     //Save the plan and write back to DB
     await plan.save();
     if (plan.caseId && typeof Case.findById === 'function') {

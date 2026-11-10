@@ -30,9 +30,11 @@ vi.mock('firebase/auth', () => ({
 
 const mockNextQuestion = { section: 'parental-rights', qKey: 'q1', options: [] };
 const mockPrevQuestion = { section: 'getting-started', qKey: 'q0', options: [] };
+const mockPlan = { _id: 'plan-1', children: [] };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.removeItem('sharedCareForm');
   global.fetch = vi.fn((url) => {
     if (url.includes('prevQuestion')) {
       return Promise.resolve({
@@ -40,10 +42,15 @@ beforeEach(() => {
         json: () => Promise.resolve(mockPrevQuestion),
       });
     }
-    // logic-engine next / any other GET
+    if (url.includes('nextQuestionWithContext')) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockNextQuestion),
+      });
+    }
     return Promise.resolve({
       ok: true,
-      json: () => Promise.resolve(mockNextQuestion),
+      json: () => Promise.resolve(mockPlan),
     });
   });
 });
@@ -133,11 +140,40 @@ describe('MainLayout', () => {
   });
 
   it('navigates forward when next button is clicked on getting-started', async () => {
+    localStorage.setItem('sharedCareForm', JSON.stringify({
+      plan: {
+        _id: 'plan-1',
+        collaborationMode: 'individual',
+        children: [],
+        aggregateData: {},
+        currentCircumstance: 'married',
+      },
+      parents: {
+        firstName: 'Alex',
+        lastName: 'Parent',
+        age: '30',
+        phone: '',
+        streetAddress: '',
+        addressLine2: '',
+        city: '',
+        state: '',
+        zipCode: '',
+      },
+      question: {},
+      currAnswer: '',
+    }));
     renderWithProviders('/getting-started');
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/parental-rights');
     });
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('nextQuestionWithContext'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ planId: 'plan-1', startQKey: 'allocation_parental_rights' }),
+      }),
+    );
   });
 
   it('navigates backward when back button is clicked', async () => {

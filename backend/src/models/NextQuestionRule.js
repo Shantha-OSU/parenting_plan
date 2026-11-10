@@ -55,6 +55,10 @@ const nextQuestionRuleSchema = new mongoose.Schema({
     // qKey of default next question if isDefault is true
     type: String,
   },
+  notApplicableGoTo: {
+    type: String,
+    default: ''
+  },
   revisionHistory: {
     type: [revisionSchema],
     default: [],
