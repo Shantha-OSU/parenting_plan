@@ -1,5 +1,5 @@
 import { Calendar, Car, Info } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../lib/firebase';
 import { buildApiUrl } from '../lib/apiClient';
@@ -14,6 +14,10 @@ import { useNavigation } from '../context/NavigationContext';
 import { useForm } from '../hooks/useForm';
 import { useSectionFlag } from '../hooks/useSectionFlag';
 import './Page.css';
+
+const childScheduleKey = (child, index) => child?._id || child?.id || `child-${index + 1}`;
+
+const childDisplayName = (child, index) => [child?.fName, child?.lName].filter(Boolean).join(' ') || `Child ${index + 1}`;
 
 export default function ParentingTimeAndCommunication() {
     const navigate = useNavigate();
@@ -34,6 +38,12 @@ export default function ParentingTimeAndCommunication() {
         parentingSchedule: {},
         holidaySchedule: {},
         schoolSchedule: {},
+        scheduleScope: 'all',
+        parentingSchedulesByChild: {},
+        holidaySchedulesByChild: {},
+        schoolSchedulesByChild: {},
+        holidayGatheringAdults: '',
+        holidayGatheringAdultsDetails: '',
         communicationWithCoParentOnPhone: '',
         communicationWithCoParentOnPhoneDescription: '',
         notifyCoParentOfChildRelatedEvents: '',
@@ -41,6 +51,33 @@ export default function ParentingTimeAndCommunication() {
         errors: {}
     };
     const errors = state.timeAndCommunication?.errors ?? {};
+    const formDataRef = useRef(formData);
+    formDataRef.current = formData;
+    const children = Array.isArray(state.plan?.children) ? state.plan.children : [];
+    const scheduleScope = formData.scheduleScope || 'all';
+    const childOptions = children.map((child, index) => ({
+        value: childScheduleKey(child, index),
+        label: childDisplayName(child, index),
+    }));
+    const [selectedChildId, setSelectedChildId] = useState(childOptions[0]?.value || '');
+
+    useEffect(() => {
+        if (!selectedChildId && childOptions.length) setSelectedChildId(childOptions[0].value);
+        if (selectedChildId && !childOptions.some((child) => child.value === selectedChildId)) {
+            setSelectedChildId(childOptions[0]?.value || '');
+        }
+    }, [selectedChildId, childOptions.length]);
+
+    const activeChildId = selectedChildId || childOptions[0]?.value;
+    const activeParentingSchedule = scheduleScope === 'byChild'
+        ? formData.parentingSchedulesByChild?.[activeChildId] || {}
+        : formData.parentingSchedule;
+    const activeHolidaySchedule = scheduleScope === 'byChild'
+        ? formData.holidaySchedulesByChild?.[activeChildId] || {}
+        : formData.holidaySchedule;
+    const activeSchoolSchedule = scheduleScope === 'byChild'
+        ? formData.schoolSchedulesByChild?.[activeChildId] || {}
+        : formData.schoolSchedule;
 
     // Separate error state for radio groups (not stored in formData.errors)
     const [communicationError, setCommunicationError] = useState('');
@@ -92,31 +129,64 @@ export default function ParentingTimeAndCommunication() {
     };
 
     const handleScheduleChange = useCallback((schedule) => {
+        const currentFormData = formDataRef.current;
+        const payload = scheduleScope === 'byChild'
+            ? { parentingSchedulesByChild: { ...(currentFormData.parentingSchedulesByChild || {}), [activeChildId]: schedule } }
+            : { parentingSchedule: schedule };
         dispatch({
             type: 'UPDATE_SECTION',
             section: 'timeAndCommunication',
-            payload: { parentingSchedule: schedule }
+            payload
         });
         if (errors.parentingSchedule) {
             dispatch({ type: 'UPDATE_SECTION', section: 'timeAndCommunication', payload: { errors: { ...errors, parentingSchedule: '' } } });
         }
-    }, [dispatch, errors.parentingSchedule]);
+    }, [dispatch, errors.parentingSchedule, scheduleScope, activeChildId]);
 
     const handleHolidayScheduleChange = useCallback((holidaySchedule) => {
+        const payload = scheduleScope === 'byChild'
+            ? { holidaySchedulesByChild: { ...(formData.holidaySchedulesByChild || {}), [activeChildId]: holidaySchedule } }
+            : { holidaySchedule };
         dispatch({
             type: 'UPDATE_SECTION',
             section: 'timeAndCommunication',
-            payload: { holidaySchedule }
+            payload
         });
-    }, [dispatch]);
+    }, [dispatch, scheduleScope, activeChildId, formData.holidaySchedulesByChild]);
 
     const handleSchoolScheduleChange = useCallback((schoolSchedule) => {
+        const payload = scheduleScope === 'byChild'
+            ? { schoolSchedulesByChild: { ...(formData.schoolSchedulesByChild || {}), [activeChildId]: schoolSchedule } }
+            : { schoolSchedule };
         dispatch({
             type: 'UPDATE_SECTION',
             section: 'timeAndCommunication',
-            payload: { schoolSchedule }
+            payload
         });
-    }, [dispatch]);
+    }, [dispatch, scheduleScope, activeChildId, formData.schoolSchedulesByChild]);
+
+    const handleScheduleScopeChange = (event) => {
+        const nextScope = event.target.value;
+        if (nextScope === 'byChild') {
+            const childIds = childOptions.map((child) => child.value);
+            const parentingSchedulesByChild = { ...(formData.parentingSchedulesByChild || {}) };
+            const holidaySchedulesByChild = { ...(formData.holidaySchedulesByChild || {}) };
+            const schoolSchedulesByChild = { ...(formData.schoolSchedulesByChild || {}) };
+            childIds.forEach((childId) => {
+                parentingSchedulesByChild[childId] ??= formData.parentingSchedule || {};
+                holidaySchedulesByChild[childId] ??= formData.holidaySchedule || {};
+                schoolSchedulesByChild[childId] ??= formData.schoolSchedule || {};
+            });
+            dispatch({ type: 'UPDATE_SECTION', section: 'timeAndCommunication', payload: {
+                scheduleScope: nextScope,
+                parentingSchedulesByChild,
+                holidaySchedulesByChild,
+                schoolSchedulesByChild,
+            } });
+        } else {
+            dispatch({ type: 'UPDATE_SECTION', section: 'timeAndCommunication', payload: { scheduleScope: nextScope } });
+        }
+    };
 
     const validateForm = () => {
         let isValid = true;
@@ -134,33 +204,73 @@ export default function ParentingTimeAndCommunication() {
             isValid = false;
         }
 
+        if (!formData.holidayGatheringAdults) {
+            formErrors.holidayGatheringAdults = 'Select yes or no.';
+            isValid = false;
+        } else if (formData.holidayGatheringAdults === 'yes' && !formData.holidayGatheringAdultsDetails?.trim()) {
+            formErrors.holidayGatheringAdultsDetails = 'Please list the name of the adult.';
+            isValid = false;
+        }
+
         const holidayErrors = {};
-        getHolidayNames(formData.holidaySchedule).forEach((holiday) => {
-            const selection = formData.holidaySchedule?.[holiday] || {
+        const holidaySchedulesToValidate = scheduleScope === 'later' ? [] : scheduleScope === 'byChild'
+            ? Object.values(formData.holidaySchedulesByChild || {})
+            : [formData.holidaySchedule];
+        holidaySchedulesToValidate.forEach((holidaySchedule) => {
+          getHolidayNames(holidaySchedule).forEach((holiday) => {
+            const selection = holidaySchedule?.[holiday] || {
+                applies: false,
                 doesNotApply: false,
                 year: '',
                 time: '',
+                dropOffTime: '',
             };
-            if (!selection.doesNotApply && !selection.year) {
+            const applies = selection.applies ?? (!selection.doesNotApply && Boolean(selection.year || selection.time || selection.alternativeRequest));
+            if (!applies && !selection.doesNotApply) {
+                holidayErrors[holiday] = { choice: 'Select applies or does not apply' };
+                isValid = false;
+            } else if (applies && !selection.year) {
                 holidayErrors[holiday] = { year: 'Select odd, even, or every year' };
                 isValid = false;
             } else if (
-                !selection.doesNotApply &&
+                applies &&
                 selection.year === 'every' &&
                 !/^(0?[1-9]|1[0-2]):[0-5]\d ?(AM|PM)$/i.test(selection.time?.trim() || '')
             ) {
                 holidayErrors[holiday] = { time: 'Enter a time like 6:00 PM' };
                 isValid = false;
+            } else if (
+                applies &&
+                selection.year === 'every' &&
+                !/^(0?[1-9]|1[0-2]):[0-5]\d ?(AM|PM)$/i.test(selection.dropOffTime?.trim() || '')
+            ) {
+                holidayErrors[holiday] = { dropOffTime: 'Enter a drop-off time like 6:00 PM' };
+                isValid = false;
             }
+          });
         });
         if (Object.keys(holidayErrors).length > 0) {
             formErrors.holidaySchedule = holidayErrors;
         }
 
         const schoolErrors = {};
-        getHolidayNames(formData.schoolSchedule, SCHOOL_BREAKS).forEach((schoolBreak) => {
-            const selection = formData.schoolSchedule?.[schoolBreak] || { doesNotApply: false, year: '', time: '' };
-            if (!selection.doesNotApply && !selection.year) {
+        const schoolSchedulesToValidate = scheduleScope === 'later' ? [] : scheduleScope === 'byChild'
+            ? Object.values(formData.schoolSchedulesByChild || {})
+            : [formData.schoolSchedule];
+        schoolSchedulesToValidate.forEach((schoolSchedule) => {
+          getHolidayNames(schoolSchedule, SCHOOL_BREAKS).forEach((schoolBreak) => {
+            const selection = schoolSchedule?.[schoolBreak] || {
+                applies: false,
+                doesNotApply: false,
+                year: '',
+                time: '',
+                dropOffTime: '',
+            };
+            const applies = selection.applies ?? (!selection.doesNotApply && Boolean(selection.year || selection.time || selection.alternativeRequest));
+            if (!applies && !selection.doesNotApply) {
+                schoolErrors[schoolBreak] = { choice: 'Select applies or does not apply' };
+                isValid = false;
+            } else if (applies && !selection.year) {
                 schoolErrors[schoolBreak] = {
                     year: SCHOOL_DAY_OPTIONS[schoolBreak]
                         ? 'Select each day, alternate days, or whichever parent has the child that day'
@@ -168,14 +278,23 @@ export default function ParentingTimeAndCommunication() {
                 };
                 isValid = false;
             } else if (
-                !selection.doesNotApply &&
+                applies &&
                 !SCHOOL_DAY_OPTIONS[schoolBreak] &&
                 selection.year === 'every' &&
                 !/^(0?[1-9]|1[0-2]):[0-5]\d ?(AM|PM)$/i.test(selection.time?.trim() || '')
             ) {
                 schoolErrors[schoolBreak] = { time: 'Enter a time like 6:00 PM' };
                 isValid = false;
+            } else if (
+                applies &&
+                !SCHOOL_DAY_OPTIONS[schoolBreak] &&
+                selection.year === 'every' &&
+                !/^(0?[1-9]|1[0-2]):[0-5]\d ?(AM|PM)$/i.test(selection.dropOffTime?.trim() || '')
+            ) {
+                schoolErrors[schoolBreak] = { dropOffTime: 'Enter an end time like 6:00 PM' };
+                isValid = false;
             }
+          });
         });
         if (Object.keys(schoolErrors).length > 0) {
             formErrors.schoolSchedule = schoolErrors;
@@ -354,14 +473,47 @@ export default function ParentingTimeAndCommunication() {
                             />
                         </section>
                         <Card>
+                            <CardContent>
+                                <div className="schedule-scope-controls">
+                                    <label htmlFor="schedule-scope">Who does this schedule apply to?</label>
+                                    <select id="schedule-scope" value={scheduleScope} onChange={handleScheduleScopeChange}>
+                                        <option value="all">All children</option>
+                                        <option value="byChild">Set a different schedule for each child</option>
+                                        <option value="later">We will determine the schedule later</option>
+                                    </select>
+                                    {scheduleScope === 'byChild' && childOptions.length > 0 && (
+                                        <>
+                                            <label htmlFor="schedule-child">Child schedule:</label>
+                                            <select id="schedule-child" value={activeChildId} onChange={(event) => setSelectedChildId(event.target.value)}>
+                                                {childOptions.map((child) => <option key={child.value} value={child.value}>{child.label}</option>)}
+                                            </select>
+                                        </>
+                                    )}
+                                    <p className="schedule-scope-controls__help">
+                                        Choose one shared schedule, create a separate schedule for each child, or record that parenting time will be determined later.
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        {scheduleScope === 'later' && (
+                            <Card>
+                                <CardContent>
+                                    <p className="schedule-scope-controls__help">
+                                        The parenting-time schedule, holiday schedule, and school-break schedule will be determined later and are not being entered in this form.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
+                        {scheduleScope !== 'later' && <>
+                        <Card>
                             <CardHeader>
                                 <CardDescription>
-                                    Create a typical week schedule that repeats. Click on any day to set up time slots with specific time frames.
+                                    Create a typical four-week parenting schedule that repeats. Click on any day to set up time slots with specific time frames and assign the responsible parent.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ScheduleBuilder
-                                    value={formData.parentingSchedule}
+                                    value={activeParentingSchedule}
                                     onChange={handleScheduleChange}
                                     parent1Label="You"
                                     parent2Label="Co-Parent"
@@ -379,12 +531,33 @@ export default function ParentingTimeAndCommunication() {
                             </CardHeader>
                             <CardContent>
                                 <HolidaySchedule
-                                    value={formData.holidaySchedule}
+                                    value={activeHolidaySchedule}
                                     onChange={handleHolidayScheduleChange}
                                     errors={errors.holidaySchedule}
                                 />
                             </CardContent>
                         </Card>
+
+                        <RadioQuestion
+                            question="Are there any adults at holiday gatherings you do not want your child to be around?"
+                            name="holidayGatheringAdults"
+                            value={formData.holidayGatheringAdults}
+                            onChange={handleChange('holidayGatheringAdults')}
+                            error={errors.holidayGatheringAdults}
+                            options={[
+                                { value: 'yes', label: 'Yes' },
+                                { value: 'no', label: 'No' },
+                            ]}
+                            conditionalInput={{
+                                triggerValue: 'yes',
+                                id: 'holidayGatheringAdultsDetails',
+                                label: 'Please list the name of the adult',
+                                value: formData.holidayGatheringAdultsDetails,
+                                onChange: handleChange('holidayGatheringAdultsDetails'),
+                                placeholder: 'Enter the adult\'s name',
+                                error: errors.holidayGatheringAdultsDetails,
+                            }}
+                        />
 
                         <Card>
                             <CardHeader>
@@ -394,12 +567,13 @@ export default function ParentingTimeAndCommunication() {
                             </CardHeader>
                             <CardContent>
                                 <SchoolSchedule
-                                    value={formData.schoolSchedule}
+                                    value={activeSchoolSchedule}
                                     onChange={handleSchoolScheduleChange}
                                     errors={errors.schoolSchedule}
                                 />
                             </CardContent>
                         </Card>
+                        </>}
 
                         <hr className="section-divider" />
 

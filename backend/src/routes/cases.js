@@ -24,6 +24,8 @@ const COMPARABLE_SECTION_FIELDS = {
     'communicationWithCoParentOnPhoneDescription',
     'notifyCoParentOfChildRelatedEvents',
     'notifyCoParentOfChildRelatedEventsDescription',
+    'holidayGatheringAdults',
+    'holidayGatheringAdultsDetails',
   ],
   informationSharing: [
     'medicalRecords',
@@ -66,10 +68,54 @@ function toPlanAnswerMap(plan, parentRole) {
 
   for (const [section, fields] of Object.entries(COMPARABLE_SECTION_FIELDS)) {
     for (const field of fields) {
-      const answer = plan[section]?.[field];
+      const sectionData = plan[section] || {};
+      const childScheduleField = {
+        parentingSchedule: 'parentingSchedulesByChild',
+        holidaySchedule: 'holidaySchedulesByChild',
+        schoolSchedule: 'schoolSchedulesByChild',
+      }[field];
+      const answer = sectionData.scheduleScope === 'later' && childScheduleField
+        ? { scheduleScope: 'later' }
+        : sectionData.scheduleScope === 'byChild' && childScheduleField
+        ? {
+          scheduleScope: 'byChild',
+          schedulesByChild: sectionData[childScheduleField] || {},
+        }
+        : sectionData[field];
       if (answer !== undefined && answer !== null && answer !== '') {
         answers[`${section}.${field}`] = parentRole ? normalizeAnswer(answer, parentRole) : answer;
       }
+    }
+  }
+
+  const legacyUserRole = plan.userRole ?? '';
+  const currentCircumstance = plan.currentCircumstance || (
+    ['married', 'never_married_seeking_custody', 'never_married_seeking_parenting_time']
+      .includes(legacyUserRole)
+      ? legacyUserRole
+      : ''
+  );
+  const caseFilingStatus = plan.caseFilingStatus || (
+    [
+      'parent1/petitioner1/plaintiff',
+      'parent2/petitioner2/defendant',
+      'no_case',
+      'flagged',
+    ].includes(legacyUserRole)
+      ? legacyUserRole
+      : ''
+  );
+  const gettingStartedFields = {
+    'getting-started.currentCircumstance': currentCircumstance,
+    'getting-started.caseFilingStatus': caseFilingStatus,
+    'getting-started.courtCustodyOrderIssued': plan.courtCustodyOrderIssued,
+    'getting-started.custodyGrantedTo': plan.courtCustodyOrderIssued === 'yes'
+      ? plan.custodyGrantedTo
+      : '',
+  };
+  for (const [qKey, answer] of Object.entries(gettingStartedFields)) {
+    if (answer !== undefined && answer !== null && answer !== '') {
+      answers[qKey] = parentRole ? normalizeAnswer(answer, parentRole) : answer;
     }
   }
 

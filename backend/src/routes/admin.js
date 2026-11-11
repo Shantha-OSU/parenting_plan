@@ -14,10 +14,11 @@ const editableQuestionFields = [
   'qIcon',
   'qText',
   'section',
-  'options'
+  'options',
+  'appliesToGroup',
 ];
 const createQuestionFields = ['qKey', ...editableQuestionFields];
-const ruleFields = ['isDefault', 'goToDefault', 'nextQuestions'];
+const ruleFields = ['isDefault', 'goToDefault', 'nextQuestions', 'notApplicableGoTo'];
 const maximumHistoryEntries = 50;
 const questionnaireStartKey = 'allocation_parental_rights';
 const questionnaireSectionOrder = [
@@ -54,13 +55,17 @@ function questionSnapshot(question) {
       ? question.options.map(({ value, label, description }) => ({ value, label, description }))
       : question[field];
   }
+  snapshot.appliesToGroup = question.appliesToGroup || '';
   snapshot.isArchived = question.isArchived === true;
   return snapshot;
 }
 
 function validateQuestionPayload(payload, allowedFields, { requireAll = false } = {}) {
+  const optionalFields = ['appliesToGroup'];
   if (!isPlainObject(payload) ||
-      (requireAll && allowedFields.some((field) => !Object.hasOwn(payload, field))) ||
+      (requireAll && allowedFields.some((field) =>
+        !optionalFields.includes(field) && !Object.hasOwn(payload, field)
+      )) ||
       Object.keys(payload).length === 0 ||
       !containsOnlyFields(payload, allowedFields)) {
     return 'Provide valid question fields';
@@ -80,6 +85,12 @@ function validateQuestionPayload(payload, allowedFields, { requireAll = false } 
   }
   if (Object.hasOwn(payload, 'type') && !adminQuestionTypes.has(payload.type)) {
     return 'Only multiple choice and text input questions are currently supported';
+  }
+  if (
+    Object.hasOwn(payload, 'appliesToGroup') &&
+    !['', 'married', 'not_married'].includes(payload.appliesToGroup)
+  ) {
+    return 'Question applicability must be married, not_married, or empty';
   }
 
   if (Object.hasOwn(payload, 'options')) {
@@ -103,6 +114,7 @@ function ruleSnapshot(rule) {
   return {
     isDefault: rule.isDefault,
     goToDefault: rule.goToDefault,
+    notApplicableGoTo: rule.notApplicableGoTo || '',
     nextQuestions: rule.nextQuestions.map(({ operator, value, goTo }) => ({
       operator,
       value,
@@ -141,8 +153,8 @@ function orderQuestionsByFlow(questions, rules) {
     if (!rule) return;
 
     const destinations = rule.isDefault
-      ? [rule.goToDefault]
-      : (rule.nextQuestions || []).map((nextRule) => nextRule.goTo);
+      ? [rule.goToDefault, rule.notApplicableGoTo]
+      : [...(rule.nextQuestions || []).map((nextRule) => nextRule.goTo), rule.notApplicableGoTo];
     destinations.forEach(visitQuestion);
   }
 
@@ -192,10 +204,10 @@ router.get('/questions', async (req, res) => {
   try {
     const [allQuestions, rules] = await Promise.all([
       Question.find()
-        .select('type qTitle qIntro qDisclaimer qIcon qText qKey section options createdAt isArchived')
+        .select('type qTitle qIntro qDisclaimer qIcon qText qKey section options appliesToGroup createdAt isArchived')
         .lean(),
       NextQuestionRule.find()
-        .select('qKey isDefault goToDefault nextQuestions')
+        .select('qKey isDefault goToDefault notApplicableGoTo nextQuestions')
         .lean()
     ]);
     const orderedQuestions = orderQuestionsByFlow(allQuestions, rules);
@@ -267,9 +279,12 @@ router.post('/questions/:qKey/after', async (req, res) => {
         .select('+revisionHistory')
         .session(session);
       if (previousRule) {
-        const destinations = previousRule.isDefault
-          ? [previousRule.goToDefault || '']
-          : previousRule.nextQuestions.map((nextQuestion) => nextQuestion.goTo);
+        const destinations = (previousRule.isDefault
+          ? [previousRule.goToDefault || '', previousRule.notApplicableGoTo || '']
+          : [
+            ...previousRule.nextQuestions.map((nextQuestion) => nextQuestion.goTo),
+            previousRule.notApplicableGoTo || ''
+          ]).filter(Boolean);
         const uniqueDestinations = new Set(destinations);
         if (uniqueDestinations.size > 1) {
           const error = new Error(
@@ -306,6 +321,9 @@ router.post('/questions/:qKey/after', async (req, res) => {
           previousRule.nextQuestions.forEach((nextQuestion) => {
             nextQuestion.goTo = questionBefore.qKey;
           });
+        }
+        if (previousRule.notApplicableGoTo === previousSuccessor) {
+          previousRule.notApplicableGoTo = questionBefore.qKey;
         }
         appendRevision(previousRule, before, ruleSnapshot(previousRule), req.user.uid);
         await previousRule.save({ session });
@@ -417,7 +435,8 @@ router.patch('/questions/:qKey/archive', async (req, res) => {
       const inboundRules = await NextQuestionRule.find({
         $or: [
           { isDefault: true, goToDefault: question.qKey },
-          { 'nextQuestions.goTo': question.qKey }
+          { 'nextQuestions.goTo': question.qKey },
+          { notApplicableGoTo: question.qKey }
         ]
       }).select('+revisionHistory');
 
@@ -453,6 +472,9 @@ router.patch('/questions/:qKey/archive', async (req, res) => {
             if (nextRule.goTo === question.qKey) {
               nextRule.goTo = successor;
             }
+          }
+          if (rule.notApplicableGoTo === question.qKey) {
+            rule.notApplicableGoTo = successor;
           }
           appendRevision(rule, before, ruleSnapshot(rule), req.user.uid);
           await rule.save();
@@ -532,7 +554,10 @@ router.post('/questions/:qKey/restore', async (req, res) => {
     }
 
     const restoredFields = Object.fromEntries(
-      editableQuestionFields.map((field) => [field, revision.before[field]])
+      editableQuestionFields.map((field) => [
+        field,
+        field === 'appliesToGroup' ? revision.before[field] || '' : revision.before[field]
+      ])
     );
     const validationError = validateQuestionPayload(restoredFields, editableQuestionFields, {
       requireAll: true
@@ -566,7 +591,7 @@ router.post('/questions/:qKey/restore', async (req, res) => {
 router.get('/question-rules', async (req, res) => {
   try {
     const rules = await NextQuestionRule.find()
-      .select('qKey isDefault goToDefault nextQuestions')
+      .select('qKey isDefault goToDefault notApplicableGoTo nextQuestions')
       .sort({ qKey: 1 })
       .lean();
     return res.json({ rules });
@@ -604,6 +629,12 @@ router.put('/question-rules/:qKey', async (req, res) => {
   )) {
     return res.status(400).json({ error: 'One or more branching rules are invalid' });
   }
+  if (
+    Object.hasOwn(req.body, 'notApplicableGoTo') &&
+    typeof req.body.notApplicableGoTo !== 'string'
+  ) {
+    return res.status(400).json({ error: 'The skip destination must be a question key or an empty string' });
+  }
 
   try {
     const questionExists = await Question.exists({ qKey: req.params.qKey });
@@ -616,6 +647,9 @@ router.put('/question-rules/:qKey', async (req, res) => {
       destinations.add(req.body.goToDefault);
     } else if (!req.body.isDefault) {
       req.body.nextQuestions.forEach((rule) => destinations.add(rule.goTo));
+    }
+    if (req.body.notApplicableGoTo) {
+      destinations.add(req.body.notApplicableGoTo);
     }
 
     const existingDestinations = await Question.find({
@@ -636,6 +670,7 @@ router.put('/question-rules/:qKey', async (req, res) => {
     rule.set({
       isDefault: req.body.isDefault,
       goToDefault: req.body.goToDefault,
+      notApplicableGoTo: req.body.notApplicableGoTo || '',
       nextQuestions: req.body.nextQuestions
     });
     appendRevision(rule, before, ruleSnapshot(rule), req.user.uid);

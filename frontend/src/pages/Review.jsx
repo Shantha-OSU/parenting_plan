@@ -98,6 +98,8 @@ const CUSTOM_SECTION_FIELDS = {
       communicationWithCoParentOnPhoneDescription: 'Phone communication circumstances',
       notifyCoParentOfChildRelatedEvents: 'Notify co-parent about illness or injury',
       notifyCoParentOfChildRelatedEventsDescription: 'Illness or injury notification circumstances',
+      holidayGatheringAdults: 'Adults restricted from holiday gatherings',
+      holidayGatheringAdultsDetails: 'Restricted holiday-gathering adult name',
     },
   },
   informationSharing: {
@@ -142,6 +144,10 @@ const CUSTOM_FIELD_OPTIONS = {
     { value: 'needMoreInfo', label: 'I need more information' },
     { value: 'defaultToCoParentChoice', label: "Default to my co-parent's choice" },
   ],
+  holidayGatheringAdults: [
+    { value: 'yes', label: 'Yes' },
+    { value: 'no', label: 'No' },
+  ],
   medicalRecords: INFORMATION_SHARING_OPTIONS,
   schoolContact: INFORMATION_SHARING_OPTIONS,
   schoolActivities: INFORMATION_SHARING_OPTIONS,
@@ -154,13 +160,24 @@ const STATE_FIELD_OPTIONS = {
     { value: 'no_case', label: 'No case has been filed yet by either co-parent' },
     { value: 'flagged', label: "I'm not sure" },
   ],
-  residentialParent: [
-    { value: 'yes', label: 'Yes, I am the residential parent' },
-    { value: 'no', label: 'No, I am not the residential parent' },
+  currentCircumstance: [
+    { value: 'married', label: 'I am going through the process of a divorce, dissolution of marriage, or legal separation.' },
+    { value: 'never_married_seeking_custody', label: 'I was never married to my co-parent, and I have or am seeking legal custody of our child(ren).' },
+    { value: 'never_married_seeking_parenting_time', label: 'I was never married to my co-parent, and I want to establish parenting time with our child(ren).' },
   ],
-  parentRole: [
-    { value: 'residential', label: 'I am the residential parent' },
-    { value: 'nonresidential', label: 'I am the non-residential parent' },
+  caseFilingStatus: [
+    { value: 'parent1/petitioner1/plaintiff', label: 'Yes, it was me' },
+    { value: 'parent2/petitioner2/defendant', label: 'No, my co-parent filed' },
+    { value: 'no_case', label: 'No case has been filed yet by either co-parent' },
+    { value: 'flagged', label: "I'm not sure" },
+  ],
+  courtCustodyOrderIssued: [
+    { value: 'yes', label: 'Yes' },
+    { value: 'no', label: 'No' },
+  ],
+  custodyGrantedTo: [
+    { value: 'me', label: 'Me' },
+    { value: 'coparent', label: 'My co-parent' },
   ],
   collaborationMode: [
     { value: 'individual', label: 'I wish to complete the form on my own'},
@@ -192,6 +209,23 @@ function addCustomSectionResponses(grouped, plan) {
 /* Displays children's names */
 function addStateSectionResponses(grouped, plan) {
   const savedTaxExemptions = plan.taxExemptions ?? {};
+  const legacyUserRole = plan.userRole ?? '';
+  const currentCircumstance = plan.currentCircumstance || (
+    ['married', 'never_married_seeking_custody', 'never_married_seeking_parenting_time']
+      .includes(legacyUserRole)
+      ? legacyUserRole
+      : ''
+  );
+  const caseFilingStatus = plan.caseFilingStatus || (
+    [
+      'parent1/petitioner1/plaintiff',
+      'parent2/petitioner2/defendant',
+      'no_case',
+      'flagged',
+    ].includes(legacyUserRole)
+      ? legacyUserRole
+      : ''
+  );
   const childNames = (plan.children ?? []).map((child, index) => {
     const name = [child.fName ?? child.firstName, child.lName ?? child.lastName]
       .filter(Boolean)
@@ -211,8 +245,14 @@ function addStateSectionResponses(grouped, plan) {
     ['city', 'City', plan.city],
     ['state', 'State', plan.state],
     ['zipCode', 'ZIP code', plan.zipCode],
-    ['userRole', 'Case filing status', plan.userRole],
-    ['residentialParent', 'Residential parent', plan.residentialParent],
+    ['currentCircumstance', 'Current circumstance', currentCircumstance],
+    ['caseFilingStatus', 'Case filing status', caseFilingStatus],
+    ['courtCustodyOrderIssued', 'Court custody order issued', plan.courtCustodyOrderIssued],
+    [
+      'custodyGrantedTo',
+      'Parent granted custody',
+      plan.courtCustodyOrderIssued === 'yes' ? plan.custodyGrantedTo : '',
+    ],
     ['children', 'Children', childNames],
   ];
   const taxExemptions = [

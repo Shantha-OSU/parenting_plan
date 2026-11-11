@@ -192,6 +192,12 @@ export default function UserData() {
 
   return (
     <main className="user-data">
+      <header className="user-data__header">
+        <p className="user-data__eyebrow">Community overview</p>
+        <h1>Aggregate data dashboard</h1>
+        <p>Explore the demographics and preferences represented in parenting plans.</p>
+      </header>
+
       <section className="user-data__metrics" aria-label="Summary statistics">
         <article className="user-data__metric-card">
           <span className="user-data__metric-label">Plans represented</span>

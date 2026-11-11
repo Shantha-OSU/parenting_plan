@@ -167,8 +167,8 @@ export function answerText(answer, question, answeringParent, relativeLabels = f
     const coParent = answeringParent === 'parent2' ? 'Parent 1'
       : answeringParent === 'no_case' ? 'Co-parent' : 'Parent 2';
     return label
-      .replace(/\bMe and my co-parent\b/g, `${parent} and ${coParent}`)
-      .replace(/\bMe and my coparent\b/g, `${parent} and ${coParent}`)
+      .replace(/\bMe  my co-parent\b/g, `Parent 1 and Parent 2`)
+      .replace(/\bMe and my coparent\b/g, `Parent 1 and Parent 2`)
       .replace(/\bJust me\b/g, parent)
       .replace(/\bJust my co-parent(?:'s)?\b/g, coParent)
       .replace(/\bmy co-parent\b/gi, coParent)
@@ -227,6 +227,7 @@ function formatScheduleSlot(slot) {
 function formatCalendarDetails(details) {
   if (!details || typeof details !== 'object') return 'No preference entered';
   if (details.doesNotApply) return 'Does not apply';
+  if (details.applies === false) return 'No selection made';
   const yearLabels = {
     odd: 'Odd years',
     even: 'Even years',
@@ -235,6 +236,7 @@ function formatCalendarDetails(details) {
   const parts = [
     yearLabels[details.year] || details.year,
     formatTime(details.time),
+    details.dropOffTime ? `Drop-off ${formatTime(details.dropOffTime)}` : '',
     details.alternativeRequest,
   ].filter(Boolean);
   return parts.join(' · ') || 'No preference entered';
@@ -242,6 +244,16 @@ function formatCalendarDetails(details) {
 
 function formatSchedule(answer, scheduleType) {
   if (!answer || typeof answer !== 'object') return 'Not scheduled';
+  if (answer.scheduleScope === 'later') return 'Schedule will be determined later';
+
+  if (answer.scheduleScope === 'byChild' && answer.schedulesByChild) {
+    const childEntries = Object.entries(answer.schedulesByChild);
+    if (!childEntries.length) return 'Not scheduled';
+    return childEntries.map(([, childSchedule], index) => (
+      `${childSchedule?.childName || `Child ${index + 1}`}\n${formatSchedule(childSchedule?.schedule || childSchedule, scheduleType)}`
+    )).join('\n\n');
+  }
+
   const entries = Object.entries(answer);
   if (!entries.length) return 'Not scheduled';
 
@@ -353,6 +365,21 @@ function scheduleTypeForKey(qKey) {
 function renderScheduleAnswer(qKey, answer, question) {
   const scheduleType = scheduleTypeForKey(qKey) || question?.scheduleType;
   if (!scheduleType) return null;
+  if (answer?.scheduleScope === 'later') {
+    return <span>Schedule will be determined later</span>;
+  }
+  if (answer?.scheduleScope === 'byChild' && answer.schedulesByChild) {
+    return (
+      <div className="form-designer__child-schedules">
+        {Object.entries(answer.schedulesByChild).map(([childId, childSchedule], index) => (
+          <section className="form-designer__child-schedule" key={childId}>
+            <h4>{childSchedule?.childName || `Child ${index + 1}`}</h4>
+            {renderScheduleAnswer(qKey, childSchedule?.schedule || childSchedule, question)}
+          </section>
+        ))}
+      </div>
+    );
+  }
   if (answer?.parent1 || answer?.parent2) {
     return <ComparisonSchedule value={answer} type={scheduleType} />;
   }
@@ -458,6 +485,8 @@ const customFieldLabels = {
   communicationWithCoParentOnPhoneDescription: 'Phone communication circumstances',
   notifyCoParentOfChildRelatedEvents: 'Notify co-parent about illness or injury',
   notifyCoParentOfChildRelatedEventsDescription: 'Illness or injury notification circumstances',
+  holidayGatheringAdults: 'Adults restricted from holiday gatherings',
+  holidayGatheringAdultsDetails: 'Restricted holiday-gathering adult name',
   medicalRecords: 'Medical information access',
   schoolContact: 'School contact rights',
   schoolActivities: 'School activity participation',
@@ -486,6 +515,7 @@ const customOptionValues = {
     needMoreInfo: 'I need more information',
     defaultToCoParentChoice: "Default to my co-parent's choice",
   },
+  holidayGatheringAdults: { yes: 'Yes', no: 'No' },
   medicalRecords: {
     parent1: 'Just me',
     parent2: 'Just my co-parent',
@@ -616,10 +646,35 @@ export function collectAnswers(state, questions, caseParentNames = {}) {
     parent2State: 'Parent 2 state',
     parent2ZipCode: 'Parent 2 ZIP code',
   }, 'case', true, true, true);
-  addFields(state.plan, 'Getting Started', {
-    userRole: 'Case filing status',
-    residentialParent: 'Residential parent',
-  });
+  const legacyUserRole = state.plan?.userRole ?? '';
+  const gettingStartedData = {
+    ...state.plan,
+    currentCircumstance: state.plan?.currentCircumstance || (
+      ['married', 'never_married_seeking_custody', 'never_married_seeking_parenting_time']
+        .includes(legacyUserRole)
+        ? legacyUserRole
+        : ''
+    ),
+    caseFilingStatus: state.plan?.caseFilingStatus || (
+      [
+        'parent1/petitioner1/plaintiff',
+        'parent2/petitioner2/defendant',
+        'no_case',
+        'flagged',
+      ].includes(legacyUserRole)
+        ? legacyUserRole
+        : ''
+    ),
+    custodyGrantedTo: state.plan?.courtCustodyOrderIssued === 'yes'
+      ? state.plan?.custodyGrantedTo
+      : '',
+  };
+  addFields(gettingStartedData, 'Getting Started', {
+    currentCircumstance: 'Current circumstance',
+    caseFilingStatus: 'Case filing status',
+    courtCustodyOrderIssued: 'Court custody order issued',
+    custodyGrantedTo: 'Parent granted custody',
+  }, 'getting-started');
   const parentingTimeData = {
     ...(state.timeAndCommunication || {}),
     ...(state.plan?.timeAndCommunication || {}),
@@ -677,7 +732,20 @@ export function collectAnswers(state, questions, caseParentNames = {}) {
     ...(state.plan?.parentingTimeAndCommunication || {}),
   };
   Object.entries(SCHEDULE_FIELDS).forEach(([field, label]) => {
-    const answer = scheduleData[field];
+    const answer = scheduleData.scheduleScope === 'byChild'
+      ? {
+        scheduleScope: 'byChild',
+        schedulesByChild: Object.fromEntries(
+          Object.entries(scheduleData[`${field}sByChild`] || {}).map(([childId, schedule]) => {
+            const child = (state.plan?.children || []).find((candidate, index) => (
+              (candidate?._id || candidate?.id || `child-${index + 1}`) === childId
+            ));
+            const childName = [child?.fName, child?.lName].filter(Boolean).join(' ');
+            return [childId, { schedule, childName: childName || undefined }];
+          }),
+        ),
+      }
+      : scheduleData[field];
     if (!answer || typeof answer !== 'object' || !Object.keys(answer).length) return;
     responses.push({
       qKey: `parentingTimeAndCommunication.${field}`,
@@ -692,7 +760,7 @@ export function collectAnswers(state, questions, caseParentNames = {}) {
     });
   });
 
-  const children = (state.plan?.children || []).map((child, index) =>
+  const children = (state.plan?.children || []).map((child) =>
     child,
   );
   if (children.length) {

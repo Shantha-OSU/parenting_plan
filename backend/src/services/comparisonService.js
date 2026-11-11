@@ -15,8 +15,22 @@ function normalizeAnswer(answer, parentRole) {
   if (typeof answer === 'string') {
     const normalized = answer.trim().toLowerCase().replace(/[_-]+/g, ' ');
     const compact = normalized.replace(/[^a-z0-9]/g, '');
-    if (['me', 'meonly', 'justme', 'onlyme', 'parent1'].includes(compact)) return parentRole;
-    if (['coparent', 'coparentonly', 'justmycoparent', 'onlymycoparent', 'parent2'].includes(compact)) {
+    if ([
+      'me',
+      'meonly',
+      'justme',
+      'onlyme',
+      'parent1',
+      'parent1petitioner1plaintiff',
+    ].includes(compact)) return parentRole;
+    if ([
+      'coparent',
+      'coparentonly',
+      'justmycoparent',
+      'onlymycoparent',
+      'parent2',
+      'parent2petitioner2defendant',
+    ].includes(compact)) {
       return parentRole === 'parent1' ? 'parent2' : 'parent1';
     }
     return answer;
@@ -52,6 +66,7 @@ function containsRelativeParentValue(answer) {
   return [
     'me', 'meonly', 'justme', 'onlyme', 'coparent', 'coparentonly',
     'justmycoparent', 'onlymycoparent', 'parent1', 'parent2',
+    'parent1petitioner1plaintiff', 'parent2petitioner2defendant',
   ].includes(compact);
 }
 

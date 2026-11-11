@@ -444,6 +444,51 @@
     flex-direction: column;
     gap: 0;
   }
+
+  .section-header,
+  .section-header-with-flag,
+  .card-header-with-flag {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .section-header h2 {
+    font-size: 1.35rem;
+    line-height: 1.25;
+  }
+
+  .section-header-with-flag,
+  .card-header-with-flag {
+    flex-wrap: wrap;
+  }
+
+  .section-flag {
+    margin-left: 0;
+  }
+
+  [data-slot="card"] {
+    border-radius: 16px;
+    gap: 1rem;
+  }
+
+  [data-slot="card-header"]:has([data-slot="card-action"]) {
+    grid-template-columns: 1fr;
+  }
+
+  [data-slot="card-action"] {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: start;
+  }
+
+  .policy-description-group li {
+    margin-right: 0.5rem;
+  }
+
+  .info-banner {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
 }
 
 /* ── InformationSharing section headers ─────────────────────────────── */
@@ -653,5 +698,87 @@
   .safety-privacy-question__decline-btn {
     width: 100%;
     text-align: center;
+  }
+}
+.schedule-scope-controls {
+  display: grid;
+  grid-template-columns: minmax(13rem, 0.55fr) minmax(16rem, 1fr);
+  gap: 0.75rem 1rem;
+  align-items: center;
+  max-width: 52rem;
+  padding: 1rem 0 0.25rem;
+}
+
+.schedule-scope-controls label {
+  color: var(--text-color, #374151);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.schedule-scope-controls > label[for="schedule-scope"] {
+  align-self: center;
+  display: block;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--input-border-focus, #14abdd);
+  color: var(--heading-color, var(--text-color, #374151));
+  font-size: 1rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.schedule-scope-controls select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.55rem 2.5rem 0.55rem 0.75rem;
+  border: 1px solid var(--input-border, #cbd5e1);
+  border-radius: 0.55rem;
+  background: var(--input-background);
+  color: inherit;
+  font: inherit;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.schedule-scope-controls select:hover {
+  border-color: var(--primary-color, #2563eb);
+}
+
+.schedule-scope-controls select:focus-visible {
+  outline: none;
+  border-color: var(--primary-color, #2563eb);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #2563eb) 18%, transparent);
+}
+
+.schedule-scope-controls__help {
+  grid-column: 1 / -1;
+  max-width: 48rem;
+  margin: 0.15rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--input-border, #cbd5e1) 65%, transparent);
+  color: var(--help-text-color, #6b7280);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .schedule-scope-controls {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+    padding-top: 0.75rem;
+  }
+
+  .schedule-scope-controls label {
+    margin-top: 0.35rem;
+  }
+
+  .schedule-scope-controls > label[for="schedule-scope"] {
+    min-height: 2.25rem;
+    margin-top: 0;
+  }
+
+  .schedule-scope-controls__help {
+    margin-top: 0.5rem;
   }
 }

@@ -34,18 +34,79 @@ function AggregateCheckboxQuestion({ question, name, value, options, onChange })
               value={option.value}
               label={option.label}
               checked={selectedValues.includes(option.value)}
-              onChange={(checked) => {
-                const nextValues = checked
-                  ? [...new Set([...selectedValues, option.value])]
-                  : selectedValues.filter((selectedValue) => selectedValue !== option.value);
-                onChange(nextValues);
-              }}
+              onChange={(checked) => {let nextValues;
+                if (checked) {
+                  if (option.value === 'prefer_not_to_answer') {
+                    // Clear all other selections
+                    nextValues = ['prefer_not_to_answer'];
+                  } else {
+                    // Remove "Prefer not to answer" and add the new selection
+                    nextValues = [
+                    ...selectedValues.filter(
+                    (value) => value !== 'prefer_not_to_answer'
+                    ),
+                    option.value
+                    ];
+                  }
+                } else {
+                  // Uncheck the selected option
+                  nextValues = selectedValues.filter(
+                  (value) => value !== option.value
+                  );
+                }
+              onChange(nextValues);
+            }}
+
             />
           ))}
         </div>
       </CardContent>
     </Card>
   );
+}
+
+function getAgeFromBirthday(birthday) {
+  if (!birthday) return null;
+
+  const [year, month, day] = birthday.split('-').map(Number);
+
+  const birthDate = new Date(year, month - 1, day);
+  const today = new Date();
+
+  if (
+    !year || !month || !day ||
+    birthDate.getFullYear() !== year ||
+    birthDate.getMonth() !== month - 1 ||
+    birthDate.getDate() !== day ||
+    birthDate > today
+  ) {
+    return null;
+  }
+
+  let years = today.getFullYear() - year;
+
+  if (
+    today.getMonth() + 1 < month ||
+    (today.getMonth() + 1 === month && today.getDate() < day)
+  ) {
+    years--;
+  }
+
+  let months =
+    (today.getFullYear() - year) * 12 +
+    (today.getMonth() + 1 - month);
+
+  if (today.getDate() < day) {
+    months--;
+  }
+
+  return {
+    years,
+    months,
+    display: years < 2
+      ? `${months} ${months === 1 ? 'month' : 'months'}`
+      : `${years} ${years === 1 ? 'year' : 'years'}`
+  };
 }
 
 export default function GettingStarted() {
@@ -57,14 +118,33 @@ export default function GettingStarted() {
   const plan = state.plan ?? {};
   const aggregateData = plan.aggregateData ?? {};
   const collaborationMode = plan.collaborationMode ?? '';
-  const caseFilingStatus = plan.userRole ?? '';
-  const residentialParent = plan.residentialParent ?? '';
+  const legacyUserRole = plan.userRole ?? '';
+  const currentCircumstance = plan.currentCircumstance || (
+    ['married', 'never_married_seeking_custody', 'never_married_seeking_parenting_time']
+      .includes(legacyUserRole)
+      ? legacyUserRole
+      : ''
+  );
+  const caseFilingStatus = plan.caseFilingStatus || (
+    [
+      'parent1/petitioner1/plaintiff',
+      'parent2/petitioner2/defendant',
+      'no_case',
+      'flagged',
+    ].includes(legacyUserRole)
+      ? legacyUserRole
+      : ''
+  );
+  const courtCustodyOrderIssued = plan.courtCustodyOrderIssued ?? '';
+  const custodyGrantedTo = plan.custodyGrantedTo ?? '';
   const parentingGuideInfo = state?.parentingGuideInfo ?? '';
   const errors = formData.errors ?? {};
 
   const [collaborationModeError, setCollaborationModeError] = useState('');
+  const [currentCircumstanceError, setCurrentCircumstanceError] = useState('');
   const [caseFilingError, setCaseFilingError] = useState('');
-  const [residentialParentError, setResidentialParentError] = useState('');
+  const [courtOrderError, setCourtOrderError] = useState('');
+  const [custodyGrantedError, setCustodyGrantedError] = useState('');
   const [parentingGuideError, setParentingGuideError] = useState('');
 
   const caseFilingFlag = useSectionFlag('caseFilingStatus');
@@ -84,8 +164,10 @@ export default function GettingStarted() {
   useEffect(() => {
     dispatch({ type: 'UPDATE_SECTION', section: 'parents', payload: { errors: {} } });
     setCollaborationModeError('');
+    setCurrentCircumstanceError('');
     setCaseFilingError('');
-    setResidentialParentError('');
+    setCourtOrderError('');
+    setCustodyGrantedError('');
     setParentingGuideError('');
     setChildren(prev => prev.map(c => ({ ...c, errors: {} })));
   }, []);
@@ -134,7 +216,30 @@ export default function GettingStarted() {
     if (errors[field]) {
       dispatch({ type: 'UPDATE_SECTION', section: section, payload: { errors: { ...errors, [field]: '' } } });
     }
-    if (section === 'plan' && field === 'residentialParent') setResidentialParentError('');
+    if (section === 'plan' && field === 'currentCircumstance') setCurrentCircumstanceError('');
+    if (section === 'plan' && field === 'caseFilingStatus') setCaseFilingError('');
+  };
+
+  const handleCourtOrderChange = (value) => {
+    dispatch({
+      type: 'UPDATE_SECTION',
+      section: 'plan',
+      payload: {
+        courtCustodyOrderIssued: value,
+        ...(value === 'yes' ? {} : { custodyGrantedTo: '' }),
+      },
+    });
+    setCourtOrderError('');
+    if (value !== 'yes') setCustodyGrantedError('');
+  };
+
+  const handleCustodyGrantedChange = (value) => {
+    dispatch({
+      type: 'UPDATE_SECTION',
+      section: 'plan',
+      payload: { custodyGrantedTo: value },
+    });
+    setCustodyGrantedError('');
   };
 
   const handleAggregateChange = (field) => (value) => {
@@ -150,13 +255,43 @@ export default function GettingStarted() {
     });
   };
 
-  const handleChildChange = (childKey, field) => (value) => {
-    setChildren(prev => prev.map(child =>
-      child.key === childKey
-        ? { ...child, [field]: value, errors: { ...(child.errors ?? {}), [field]: '' } }
-        : child
-    ));
-  };
+
+const handleChildChange = (childKey, field) => (value) => {
+  setChildren(prev => prev.map(child => {
+    if (child.key !== childKey) return child;
+
+    const updatedChild = {
+      ...child,
+      [field]: value,
+      errors: {
+        ...(child.errors ?? {}),
+        [field]: ''
+      }
+    };
+
+    if (field === 'birthday') {
+      const calculatedAge = getAgeFromBirthday(value);
+
+      updatedChild.age = calculatedAge?.years ?? '';
+
+      updatedChild.classifications =
+        calculatedAge?.years < 18 && calculatedAge !== null
+          ? [...new Set([
+              ...child.classifications,
+              'under-18'
+            ])]
+          : child.classifications.filter(
+              item => item !== 'under-18'
+            );
+
+      updatedChild.errors.age = '';
+      updatedChild.errors.classification = '';
+    }
+
+    return updatedChild;
+  }));
+};
+
 
   const addChild = () => {
     const newKey = Math.max(...children.map(c => c.key), 0) + 1;
@@ -204,19 +339,41 @@ export default function GettingStarted() {
     requiredParentFields.forEach(([field, message]) => {
       if (!String(formData[field] ?? '').trim()) parentErrors[field] = message;
     });
-
+    const parentAge = Number(formData.age);
+    if (
+      String(formData.age ?? '').trim() &&
+      (!Number.isInteger(parentAge) || parentAge <= 0 || parentAge > 120)
+    ) {
+      parentErrors.age = 'Enter a valid age.';
+    }
     dispatch({
       type: 'UPDATE_SECTION',
       section: 'parents',
       payload: { errors: parentErrors },
     });
-
+    if (
+      formData.zipCode &&
+      !/^\d{5}$/.test(formData.zipCode)
+    ) {
+      parentErrors.zipCode = 'Enter a valid 5-digit ZIP code.';
+    }
+    const phoneDigits = String(formData.phone ?? '').replace(/\D/g, '');
+    if (formData.phone && phoneDigits.length !== 10) {
+      parentErrors.phone = 'Enter a valid 10-digit phone number.';
+    }
     let isValid = Object.keys(parentErrors).length === 0;
     if (!collaborationMode) {
       setCollaborationModeError('Select a collaboration mode to continue.');
       isValid = false;
     } else {
       setCollaborationModeError('');
+    }
+
+    if (!currentCircumstance) {
+      setCurrentCircumstanceError('Select a current circumstance to continue.');
+      isValid = false;
+    } else {
+      setCurrentCircumstanceError('');
     }
 
     if (!caseFilingStatus) {
@@ -226,24 +383,33 @@ export default function GettingStarted() {
       setCaseFilingError('');
     }
 
+    if (!courtCustodyOrderIssued) {
+      setCourtOrderError('Select an option to continue.');
+      isValid = false;
+    } else {
+      setCourtOrderError('');
+    }
+
+    if (courtCustodyOrderIssued === 'yes' && !custodyGrantedTo) {
+      setCustodyGrantedError('Select an option to continue.');
+      isValid = false;
+    } else {
+      setCustodyGrantedError('');
+    }
+
     const nextChildren = children.map((child) => {
       const childErrors = {};
       if (!String(child.fName ?? '').trim()) childErrors.fName = 'Enter the child\'s first name.';
       if (!String(child.lName ?? '').trim()) childErrors.lName = 'Enter the child\'s last name.';
-      if (!String(child.age ?? '').trim()) childErrors.age = 'Enter the child\'s age.';
+      if (!getAgeFromBirthday(child.birthday)) {
+        childErrors.birthday = 'Enter a valid date of birth.';
+      }      
       if (!child.birthday) childErrors.birthday = 'Enter the child\'s date of birth.';
       if (!child.classifications?.length) childErrors.classification = 'Select at least one child classification.';
       if (Object.keys(childErrors).length > 0) isValid = false;
       return { ...child, errors: childErrors };
     });
     setChildren(nextChildren);
-
-    if (!residentialParent) {
-      setResidentialParentError('Select an option to continue.');
-      isValid = false;
-    } else {
-      setResidentialParentError('');
-    }
 
     if (!parentingGuideInfo) {
       setParentingGuideError('Select an option to continue.');
@@ -273,22 +439,7 @@ export default function GettingStarted() {
           </CardHeader>
 
           <CardContent>
-            <hr className="section-divider" />
 
-            <section className="safety-privacy-section">
-              <SectionHeader
-                iconClassName="shield-icon"
-                icon={<Shield size={25} />}
-                title="Safety & Privacy"
-                help="Your safety is our priority."
-              />
-              <SafetyPrivacyQuestion
-                collaborationMode={collaborationMode}
-                onModeChange={handleCollaborationModeChange} 
-                error={collaborationModeError} 
-              />
-            </section>
-            <hr className="section-divider" />
 
             <section className="parent-information-section">
               <SectionHeader
@@ -319,14 +470,20 @@ export default function GettingStarted() {
                   </div>
                   <TextInput
                     id="firstParentAge"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={formData.age ?? ''}
-                    onChange={handleFormChange('parents', 'age')}
+                    onChange={(value) => {
+                      if (/^\d*$/.test(value)) {
+                        handleFormChange('parents', 'age')(value);
+                      }
+                    }}
                     error={errors.age}
                     placeholder="Enter your age"
                     label="Age"
                     required
                   />
+
                   <TextInput
                     id="firstParentPhone"
                     type="tel"
@@ -382,7 +539,11 @@ export default function GettingStarted() {
                     id="firstParentZipCode"
                     type="text"
                     value={formData.zipCode ?? ''}
-                    onChange={handleFormChange('parents', 'zipCode')}
+                    onChange={(value) => {
+                      if (/^\d{0,5}$/.test(value)) {
+                        handleFormChange('parents', 'zipCode')(value);
+                      }
+                    }}
                     error={errors.zipCode}
                     label="Zip Code"
                     autoComplete="postal-code"
@@ -392,182 +553,6 @@ export default function GettingStarted() {
               </Card>
             </section>
             <hr className="section-divider" />
-
-            <section className="case-filing-status-section">
-              <SectionHeader
-                iconClassName="info-icon"
-                icon={<Info size={25} />}
-                title="Case Filing Status"
-                help="Help us understand your legal situation."
-              />
-              <RadioQuestion
-                question="Did you file the divorce, separation, or child custody case that led to this parenting plan?"
-                name="caseFilingStatus"
-                value={caseFilingStatus}
-                onChange={handleFormChange('plan', 'userRole')}
-                error={caseFilingError}
-                flag={caseFilingFlag}
-                disclaimers={[
-                    { disclaimer: "Please note: ShareCare cannot confirm if your answer is correct or if there is an active divorce, separation, or child support case.", disclaimerVariant: "info" }
-                ]}
-                options={[
-                  { value: 'parent1/petitioner1/plaintiff',     label: 'Yes, it was me',         description: 'You will be identified as Parent 1/Petitioner 1/Plaintiff in the parenting plan' },
-                  { value: 'parent2/petitioner2/defendant',     label: 'No, my co-parent filed', description: 'You will be identified as Parent 2/Petitioner 2/Defendant in the parenting plan' },
-                  { value: 'no_case',                           label: 'No case has been filed yet by either co-parent' },
-                  { value: 'flagged',                             label: 'I\'m not sure' },
-                ]}
-              />
-            </section>
-            <hr className="section-divider" />
-
-            <section className="children-section">
-              <SectionHeader
-                iconClassName="users-icon"
-                icon={<Users size={25} />}
-                title="Your Children"
-                help="Please list the children you are including in this shared parenting plan."
-              />
-                {children.map((child, index) => (
-                  <Card key={child.key}>
-                    <CardHeader>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <CardTitle>{`Child ${index + 1}`}</CardTitle>
-                        {children.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeChild(child.key)}
-                            className="remove-child-btn"
-                            aria-label={`Remove Child ${index + 1}`}
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    </CardHeader>
-
-                    <CardContent>
-                      <form noValidate>
-                        <div className="form-row">
-                          <TextInput
-                            id={`child-${child.key}-firstName`}
-                            label="First Name"
-                            type="text"
-                            value={child.fName}
-                            onChange={handleChildChange(child.key, 'fName')}
-                            required
-                            placeholder="First Name"
-                            autoComplete="given-name"
-                            error={submitAttempted ? child.errors?.fName : ''}
-                          />
-
-                          <TextInput
-                            id={`child-${child.key}-lastName`}
-                            label="Last Name"
-                            type="text"
-                            value={child.lName}
-                            onChange={handleChildChange(child.key, 'lName')}
-                            required
-                            placeholder="Last Name"
-                            autoComplete="family-name"
-                            error={submitAttempted ? child.errors?.lName : ''}
-                          />
-                          <TextInput
-                            id={`child-${child.key}-age`}
-                            label="Age"
-                            type="text"
-                            value={child.age}
-                            onChange={handleChildChange(child.key, 'age')}
-                            required
-                            placeholder="Age"
-                            error={submitAttempted ? child.errors?.age : ''}
-                          />
-                        </div>
-
-                        <DatePicker
-                          id={`child-${child.key}-dateOfBirth`}
-                          label="Date of Birth"
-                          value={child.birthday}
-                          onChange={handleChildChange(child.key, 'birthday')}
-                          required
-                          max={new Date().toISOString().split('T')[0]}
-                          error={submitAttempted ? child.errors?.birthday : ''}
-                        />
-
-                        <div className="child-classification">
-                          <label className="classification-label"> Child Classification <span>(select all that apply)</span></label>
-                            <div className="checkbox-group">
-                              <Checkbox
-                                id={`child-${child.key}-under-18`}
-                                label="My child is under 18."
-                                checked={child.classifications.includes('under-18')}
-                                onChange={(checked) => {
-                                  const classifications = checked ? [...new Set([...child.classifications, 'under-18'])] : child.classifications.filter(value => value !== 'under-18');
-                                  handleChildChange(child.key, 'classifications')(classifications);
-                                }}
-                              />  
-                              <Checkbox
-                                id={`child-${child.key}-disabled`}
-                                label="My child is mentally or physically disabled in such a way that they are not able to support or maintain themselves."
-                                checked={child.classifications.includes('disabled')}
-                                onChange={(checked) => {
-                                  const classifications = checked ? [...new Set([...child.classifications, 'disabled'])] : child.classifications.filter(value => value !== 'disabled');
-                                  handleChildChange(child.key, 'classifications')(classifications);
-                                }}
-                              />
-                              <Checkbox
-                                id={`child-${child.key}-emancipated-adult`}
-                                label="My child is an emancipated adult."
-                                checked={child.classifications.includes('emancipated-adult')}
-                                onChange={(checked) => {
-                                  const classifications = checked ? [...new Set([...child.classifications, 'emancipated-adult'])] : child.classifications.filter(value => value !== 'emancipated-adult');
-                                  handleChildChange(child.key, 'classifications')(classifications);
-                                }}
-                              />
-                              {(
-                                <Disclaimer variant="info"> An “emancipated adult” is a child who received a court order that legally freed them from parental control and gave them the rights of an adult.
-                                </Disclaimer>
-                              )}
-                            </div>
-                            {child.errors?.classification && (
-                              <p className="child-classification-error">{child.errors.classification}</p>
-                            )}
-                          </div>
-                      </form>
-                    </CardContent>
-                  </Card>
-                ))}
-
-              <button
-                type="button"
-                onClick={addChild}
-                className="add-child-btn"
-              >
-                + Add Another Child
-              </button>
-            </section>
-            <hr className="section-divider" />
-
-            <section className="residential-parent-section">
-              <SectionHeader
-                iconClassName="users-icon"
-                icon={<Users size={25} />}
-                title="Residential Parent"
-                help="This means your child spends most of their time with you"
-              />
-              <RadioQuestion
-                question="Are you the residential parent?"
-                name="residentialParent"
-                value={residentialParent}
-                onChange={handleFormChange('plan', 'residentialParent')}
-                error={residentialParentError}
-                options={[
-                  { value: 'yes',   label: 'Yes, I am the residential parent' },
-                  { value: 'no',    label: 'No, I am not' }
-                ]}
-              />
-            </section>
-            <hr className="section-divider" />
-
             <section className="aggregate-data">
               <SectionHeader
                 iconClassName="info-icon"
@@ -644,6 +629,9 @@ export default function GettingStarted() {
                 name="household"
                 value={aggregateData.household ?? ''}
                 onChange={handleAggregateChange('household')}
+                disclaimers={[
+                    { disclaimer: "Household size includes any child under the age of 18 or adult that lives in the home.", disclaimerVariant: "info" }
+                ]}
                 options={[
                   { value: '1', label: '1 person' },
                   { value: '2', label: '2 person' },
@@ -698,6 +686,20 @@ export default function GettingStarted() {
             </section>
             <hr className="section-divider" />
 
+            <section className="safety-privacy-section">
+              <SectionHeader
+                iconClassName="shield-icon"
+                icon={<Shield size={25} />}
+                title="Safety & Privacy"
+                help="Your safety is our priority."
+              />
+              <SafetyPrivacyQuestion
+                collaborationMode={collaborationMode}
+                onModeChange={handleCollaborationModeChange} 
+                error={collaborationModeError} 
+              />
+            </section>
+            <hr className="section-divider" />
             <section className="residential-parent-section">
               <SectionHeader
                 iconClassName="info-icon"
@@ -708,7 +710,7 @@ export default function GettingStarted() {
                     Link to the{' '}
                     <a href="https://www.supremecourt.ohio.gov/docs/Publications/JCS/parentingGuide.pdf" target="_blank" rel="noopener noreferrer">Ohio Supreme Court Parenting Guide</a>
                   </>
-                }              
+                }
               />
               <RadioQuestion
                 question="If you are unsure about any part of this parenting plan or how to answer specific questions, review the Ohio parenting plan resources linked above. Please note that neither the Ohio Supreme Court’s guide nor this form serves to give instructions or legal advice about your rights or options available to you. If you have questions, please speak with a lawyer."
@@ -720,6 +722,203 @@ export default function GettingStarted() {
                   { value: 'yes',   label: 'I understand' }
                 ]}
               />
+            </section>
+            <hr className="section-divider" />
+            <section className="case-filing-status-section">
+              <SectionHeader
+                iconClassName="info-icon"
+                icon={<Info size={25} />}
+                title="Current Circumstances"
+              />
+              <RadioQuestion
+                question="Which situation fits your current circumstance?"
+                name="currentCircumstance"
+                value={currentCircumstance}
+                onChange={handleFormChange('plan', 'currentCircumstance')}
+                error={currentCircumstanceError}
+                options={[
+                  { value: 'married', label: 'I am going through the process of a divorce, dissolution of marriage, or legal separation.' },
+                  { value: 'never_married_seeking_custody', label: 'I was never married to my co-parent, and I have or am seeking legal custody of our child(ren).'},
+                  { value: 'never_married_seeking_parenting_time', label: 'I was never married to my co-parent, and I want to establish parenting time with our child(ren).' },
+                ]}
+              />
+            </section>
+            <hr className="section-divider" />
+            <section className="case-filing-status-section">
+              <SectionHeader
+                iconClassName="info-icon"
+                icon={<Info size={25} />}
+                title="Case Filing Status"
+                help="Help us understand your legal situation."
+              />
+              <RadioQuestion
+                question="Did you file the divorce, separation, custody, paternity, or parenting time petition that resulted in this parenting plan?"
+                name="caseFilingStatus"
+                value={caseFilingStatus}
+                onChange={handleFormChange('plan', 'caseFilingStatus')}
+                error={caseFilingError}
+                flag={caseFilingFlag}
+                disclaimers={[
+                    { disclaimer: "Please note: ShareCare cannot confirm if your answer is correct or if there is an active divorce, separation, or child support case.", disclaimerVariant: "info" }
+                ]}
+                options={[
+                  { value: 'parent1/petitioner1/plaintiff',     label: 'Yes, it was me',         description: 'You will be identified as Parent 1/Petitioner 1/Plaintiff in the parenting plan' },
+                  { value: 'parent2/petitioner2/defendant',     label: 'No, my co-parent filed', description: 'You will be identified as Parent 2/Petitioner 2/Defendant in the parenting plan' },
+                  { value: 'no_case',                           label: 'No case has been filed yet by either co-parent' },
+                  { value: 'flagged',                             label: 'I\'m not sure' },
+                ]}
+              />
+            </section>
+            <hr className="section-divider" />
+            <section className="court-custody-order-section">
+              <RadioQuestion
+                question="Has an official custody order been issued by the court regarding the child(ren)?"
+                name="courtCustodyOrderIssued"
+                value={courtCustodyOrderIssued}
+                onChange={handleCourtOrderChange}
+                error={courtOrderError}
+                options={[
+                  { value: 'yes', label: 'Yes' },
+                  { value: 'no', label: 'No' },
+                ]}
+              />
+              {courtCustodyOrderIssued === 'yes' && (
+                <RadioQuestion
+                  question="Which parent was granted custody of the child(ren)?"
+                  name="custodyGrantedTo"
+                  value={custodyGrantedTo}
+                  onChange={handleCustodyGrantedChange}
+                  error={custodyGrantedError}
+                  options={[
+                    { value: 'me', label: 'Me' },
+                    { value: 'coparent', label: 'My co-parent' },
+                  ]}
+                />
+              )}
+            </section>
+            <hr className="section-divider" />
+            <section className="children-section">
+              <SectionHeader
+                iconClassName="users-icon"
+                icon={<Users size={25} />}
+                title="Your Children"
+                help="Please list the children you are including in this shared parenting plan."
+              />
+                {children.map((child, index) => (
+                  <Card key={child.key}>
+                    <CardHeader>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <CardTitle>{`Child ${index + 1}`}</CardTitle>
+                        {children.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeChild(child.key)}
+                            className="remove-child-btn"
+                            aria-label={`Remove Child ${index + 1}`}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </CardHeader>
+
+                    <CardContent>
+                      <form noValidate>
+                        <div className="form-row">
+                          <TextInput
+                            id={`child-${child.key}-firstName`}
+                            label="First Name"
+                            type="text"
+                            value={child.fName}
+                            onChange={handleChildChange(child.key, 'fName')}
+                            required
+                            placeholder="First Name"
+                            autoComplete="given-name"
+                            error={submitAttempted ? child.errors?.fName : ''}
+                          />
+
+                          <TextInput
+                            id={`child-${child.key}-lastName`}
+                            label="Last Name"
+                            type="text"
+                            value={child.lName}
+                            onChange={handleChildChange(child.key, 'lName')}
+                            required
+                            placeholder="Last Name"
+                            autoComplete="family-name"
+                            error={submitAttempted ? child.errors?.lName : ''}
+                          />
+                        <TextInput
+                          id={`child-${child.key}-age`}
+                          label="Age"
+                          type="text"
+                          value={getAgeFromBirthday(child.birthday)?.display ?? ''}
+                          placeholder="Calculated from date of birth"
+                          disabled
+                        />
+                        </div>
+                        <DatePicker
+                          id={`child-${child.key}-dateOfBirth`}
+                          label="Date of Birth"
+                          value={child.birthday}
+                          onChange={handleChildChange(child.key, 'birthday')}
+                          required
+                          max={new Date().toISOString().split('T')[0]}
+                          error={submitAttempted ? child.errors?.birthday : ''}
+                        />
+
+                        <div className="child-classification">
+                          <label className="classification-label"> Child Classification <span>(select all that apply)</span></label>
+                            <div className="checkbox-group">
+                              <Checkbox
+                                id={`child-${child.key}-under-18`}
+                                label="My child is under 18."
+                                checked={child.classifications.includes('under-18')}
+                                disabled={getAgeFromBirthday(child.birthday) !== null}
+                                onChange={(checked) => {
+                                  const classifications = checked ? [...new Set([...child.classifications, 'under-18'])] : child.classifications.filter(value => value !== 'under-18');
+                                  handleChildChange(child.key, 'classifications')(classifications);
+                                }}
+                              />  
+                              <Checkbox
+                                id={`child-${child.key}-disabled`}
+                                label="My child is mentally or physically disabled in such a way that they are not able to support or maintain themselves."
+                                checked={child.classifications.includes('disabled')}
+                                onChange={(checked) => {
+                                  const classifications = checked ? [...new Set([...child.classifications, 'disabled'])] : child.classifications.filter(value => value !== 'disabled');
+                                  handleChildChange(child.key, 'classifications')(classifications);
+                                }}
+                              />
+                              <Checkbox
+                                id={`child-${child.key}-emancipated-adult`}
+                                label="My child is an emancipated adult."
+                                checked={child.classifications.includes('emancipated-adult')}
+                                onChange={(checked) => {
+                                  const classifications = checked ? [...new Set([...child.classifications, 'emancipated-adult'])] : child.classifications.filter(value => value !== 'emancipated-adult');
+                                  handleChildChange(child.key, 'classifications')(classifications);
+                                }}
+                              />
+                              {(
+                                <Disclaimer variant="info"> An “emancipated adult” is a child who received a court order that legally freed them from parental control and gave them the rights of an adult.
+                                </Disclaimer>
+                              )}
+                            </div>
+                            {child.errors?.classification && (
+                              <p className="child-classification-error">{child.errors.classification}</p>
+                            )}
+                          </div>
+                      </form>
+                    </CardContent>
+                  </Card>
+                ))}
+
+              <button
+                type="button"
+                onClick={addChild}
+                className="add-child-btn"
+              >
+                + Add Another Child
+              </button>
             </section>
           </CardContent>
         </Card>
