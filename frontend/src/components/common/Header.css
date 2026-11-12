@@ -93,6 +93,27 @@
   border-color: transparent;
 }
 
+.header__delete-account-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: none;
+  color: #b91c1c;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  border-radius: 0;
+  transition: color 0.2s;
+}
+
+.header__delete-account-btn:hover {
+  color: #7f1d1d;
+  background: transparent;
+  border-color: transparent;
+}
+
 .header__saved {
   display: flex;
   align-items: center;

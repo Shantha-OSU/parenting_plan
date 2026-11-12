@@ -70,6 +70,42 @@
   background-color: #dc2626;
 }
 
+.delete-modal__confirm:disabled,
+.delete-modal__cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.delete-account-modal__label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.delete-account-modal__input {
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.delete-account-modal__input:focus {
+  outline: 2px solid #14abdd;
+  outline-offset: 1px;
+}
+
+.delete-account-modal__error {
+  margin: 0 0 0.75rem;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
 /* Context menu */
 .context-menu {
   position: fixed;

@@ -17,6 +17,10 @@ export default function Dashboard() {
   const [activeCaseId, setActiveCaseId] = useState(null);
   const [showSwitchPrompt, setShowSwitchPrompt] = useState(false);
   const [inviteTargetPlanId, setInviteTargetPlanId] = useState(null);
+  const [showAccountDeletePrompt, setShowAccountDeletePrompt] = useState(false);
+  const [accountDeleteConfirmation, setAccountDeleteConfirmation] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [accountDeleteError, setAccountDeleteError] = useState('');
 
   const { state, dispatch } = useForm();
 
@@ -195,6 +199,35 @@ export default function Dashboard() {
     navigate('/');
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user || accountDeleteConfirmation !== 'DELETE') return;
+
+    setIsDeletingAccount(true);
+    setAccountDeleteError('');
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch(buildApiUrl('/api/auth/account'), {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'Could not delete account');
+      }
+
+      dispatch({ type: 'RESET' });
+      localStorage.removeItem('sharedCareForm');
+      await signOut(auth);
+      navigate('/');
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      setAccountDeleteError(error.message);
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
   // Called when user clicks any invite button.
   // Routes based on current collaborationMode.
   const handleInviteClick = (plan) => {
@@ -247,7 +280,15 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard" onClick={() => setContextMenu(null)}>
-      <Header user={user} onSignOut={handleSignOut} />
+      <Header
+        user={user}
+        onSignOut={handleSignOut}
+        onDeleteAccount={() => {
+          setAccountDeleteConfirmation('');
+          setAccountDeleteError('');
+          setShowAccountDeletePrompt(true);
+        }}
+      />
       <InviteModal
         isOpen={isInviteOpen}
         onClose={() => setIsInviteOpen(false)}
@@ -265,6 +306,47 @@ export default function Dashboard() {
             <div className="delete-modal__actions">
               <button className="delete-modal__cancel" onClick={() => setDeleteTarget(null)}>Cancel</button>
               <button className="delete-modal__confirm" onClick={() => handleDeletePlan(deleteTarget._id)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAccountDeletePrompt && (
+        <div className="delete-modal__overlay" onClick={() => !isDeletingAccount && setShowAccountDeletePrompt(false)}>
+          <div className="delete-modal delete-account-modal" onClick={e => e.stopPropagation()}>
+            <h3 className="delete-modal__title">Delete your account?</h3>
+            <p className="delete-modal__body">
+              This action will permanantly delete your account and all associated plans. This action cannot be undone. If you are sure you want to delete your account, please type <strong>DELETE</strong> in the box below and click "Delete account".
+            </p>
+            <label className="delete-account-modal__label" htmlFor="delete-account-confirmation">
+              Type DELETE to confirm
+            </label>
+            <input
+              id="delete-account-confirmation"
+              className="delete-account-modal__input"
+              value={accountDeleteConfirmation}
+              onChange={e => setAccountDeleteConfirmation(e.target.value)}
+              disabled={isDeletingAccount}
+              autoComplete="off"
+            />
+            {accountDeleteError && (
+              <p className="delete-account-modal__error" role="alert">{accountDeleteError}</p>
+            )}
+            <div className="delete-modal__actions">
+              <button
+                className="delete-modal__cancel"
+                onClick={() => setShowAccountDeletePrompt(false)}
+                disabled={isDeletingAccount}
+              >
+                Cancel
+              </button>
+              <button
+                className="delete-modal__confirm"
+                onClick={handleDeleteAccount}
+                disabled={accountDeleteConfirmation !== 'DELETE' || isDeletingAccount}
+              >
+                {isDeletingAccount ? 'Deleting...' : 'Delete account'}
+              </button>
             </div>
           </div>
         </div>

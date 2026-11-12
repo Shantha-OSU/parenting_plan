@@ -1,12 +1,13 @@
 import './Header.css';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Menu } from 'lucide-react';
+import { LogOut, Menu, UserRoundX } from 'lucide-react';
 import logo from '../../assets/logos/ShareCare_Symmetrical Diamond Logo (1120 x 310 px).png';
 
 export default function Header({
   saved = false,
   user = null,
   onSignOut = null,
+  onDeleteAccount = null,
   onMenuToggle = null,
   isMenuOpen = false,
 }) {
@@ -57,6 +58,16 @@ export default function Header({
                 <button className="header__signout-btn" onClick={onSignOut}>
                   <LogOut size={16} />
                   Sign Out
+                </button>
+              )}
+              {onDeleteAccount && (
+                <button
+                  className="header__delete-account-btn"
+                  onClick={onDeleteAccount}
+                  aria-label="Delete account"
+                >
+                  <UserRoundX size={16} />
+                  Delete Account
                 </button>
               )}
             </div>

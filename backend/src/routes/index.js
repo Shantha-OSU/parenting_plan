@@ -232,6 +232,29 @@ router.post('/auth/firebase/session', requireDatabaseConnection, async (req, res
   }
 });
 
+router.delete('/auth/account', requireDatabaseConnection, verifyToken.withRevocationCheck(), async (req, res) => {
+  try {
+    const firebaseUid = req.user.uid;
+
+    await Plan.deleteMany({ userID: firebaseUid });
+    await User.findOneAndDelete({ firebaseUid });
+
+    try {
+      await getFirebaseAuth().deleteUser(firebaseUid);
+    } catch (firebaseError) {
+      if (firebaseError.code !== 'auth/user-not-found') {
+        console.error('Firebase account deletion failed:', firebaseError);
+        return res.status(502).json({ error: 'Account data was removed, but the Firebase account could not be deleted' });
+      }
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error('Account deletion failed:', error);
+    return res.status(500).json({ error: 'Could not delete account' });
+  }
+});
+
 router.get(
   '/aggregate-data',
   requireDatabaseConnection,
