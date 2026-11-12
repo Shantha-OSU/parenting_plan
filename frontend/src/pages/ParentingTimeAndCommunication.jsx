@@ -13,6 +13,7 @@ import SectionHeader from '../components/forms/SectionHeader';
 import { useNavigation } from '../context/NavigationContext';
 import { useForm } from '../hooks/useForm';
 import { useSectionFlag } from '../hooks/useSectionFlag';
+import Disclaimer from '../components/forms/Disclaimer';
 import './Page.css';
 
 const childScheduleKey = (child, index) => child?._id || child?.id || `child-${index + 1}`;
@@ -389,6 +390,9 @@ export default function ParentingTimeAndCommunication() {
                             Fields marked with <span className="required-asterisk">*</span> are required.
                         </CardDescription>
                     </CardHeader>
+                    <Disclaimer variant="warning">
+                        Legal Disclaimer: This tool is for informational purposes only. It does not provide legal advice about your rights or options available to you. Your responses do not create or establish any legal rights for either parent. This tool is intended to help co-parents think about important topics when making a shared parenting plan. Only a court can approve a parenting plan and make it legally binding. If you have any questions, please talk with a lawyer.
+                    </Disclaimer>
                     <CardContent>
                         <hr className="section-divider" />
 
@@ -508,7 +512,7 @@ export default function ParentingTimeAndCommunication() {
                         <Card>
                             <CardHeader>
                                 <CardDescription>
-                                    Create a typical four-week parenting schedule that repeats. Click on any day to set up time slots with specific time frames and assign the responsible parent.
+                                    Create a typical monthly schedule. Click on any day to set up time slots with specific time frames and assign the responsible parent.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -517,7 +521,7 @@ export default function ParentingTimeAndCommunication() {
                                     onChange={handleScheduleChange}
                                     parent1Label="You"
                                     parent2Label="Co-Parent"
-                                    helpText="Click on a day to add time slots. You can specify exact time frames or mark whole days."
+                                    helpText="Schedule entries are created by selecting a day from Week 1, Week 2, Week 3, or Week 4; assigning a time to You or your Co-Parent; and selecting whether the entry does not repeat, repeats every week, or repeats every other week. You can select one or more weekdays and set a whole day or start and end times."
                                     error={errors.parentingSchedule}
                                 />
                             </CardContent>
