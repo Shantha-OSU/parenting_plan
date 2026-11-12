@@ -31,11 +31,12 @@ export default function RadioQuestion({
   error,
   conditionalInput,
   disclaimers,
+  autoFocus = false,
 }) {
   return (
     <Card>
       <CardHeader className={flag ? 'card-header-with-flag' : undefined}>
-        <CardDescription className="card-heading-question-bold">
+        <CardDescription id={`${name}-question`} className="card-heading-question-bold">
           {question.replace(/\\n/g, '\n')}
           <HelpMenu text={help} />
         </CardDescription>
@@ -44,8 +45,8 @@ export default function RadioQuestion({
         )}
       </CardHeader>
       <CardContent>
-        <div className="radio-group">
-          {options.map((option) => (
+        <div className="radio-group" role="radiogroup" aria-labelledby={`${name}-question`}>
+          {options.map((option, index) => (
             <RadioButton
               key={option.value}
               name={name}
@@ -54,6 +55,7 @@ export default function RadioQuestion({
               onChange={(e) => onChange(e.target.value)}
               label={option.label}
               description={option.description}
+              autoFocus={autoFocus && index === Math.max(options.findIndex(option => option.value === value), 0)}
             />
           ))}
 

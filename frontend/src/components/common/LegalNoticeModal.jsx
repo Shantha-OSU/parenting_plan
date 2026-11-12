@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Scale, AlertTriangle, RefreshCw, ArrowRight } from 'lucide-react';
 import Checkbox from '../forms/Checkbox';
+import useModalAccessibility from '../../hooks/useModalAccessibility';
 import './LegalNoticeModal.css';
 
 const ACKNOWLEDGMENTS = [
@@ -57,17 +58,27 @@ export default function LegalNoticeModal({ isOpen, onAccept, onClose }) {
     onClose();
   };
 
+  const { dialogRef, handleKeyDown } = useModalAccessibility(isOpen, handleClose);
+
   if (!isOpen) return null;
 
   return (
-    <div className="lnm-overlay" role="dialog" aria-modal="true" aria-labelledby="lnm-title">
-      <div className="lnm">
+    <div className="lnm-overlay">
+      <div
+        ref={dialogRef}
+        className="lnm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lnm-title"
+        tabIndex="-1"
+        onKeyDown={handleKeyDown}
+      >
 
         {/* Header */}
         <div className="lnm__header">
           <div className="lnm__header-left">
             <div className="lnm__header-icon">
-              <Scale size={20} />
+              <Scale size={20} aria-hidden="true" />
             </div>
             <h2 id="lnm-title" className="lnm__title">Important Notices</h2>
           </div>
@@ -76,7 +87,7 @@ export default function LegalNoticeModal({ isOpen, onAccept, onClose }) {
             onClick={handleClose}
             aria-label="Close — you will not be able to create an account without agreeing"
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </button>
         </div>
 
@@ -87,7 +98,7 @@ export default function LegalNoticeModal({ isOpen, onAccept, onClose }) {
           <div className="lnm__notices">
             <div className="lnm__notice">
               <div className="lnm__notice-icon lnm__notice-icon--blue">
-                <Scale size={18} />
+                <Scale size={18} aria-hidden="true" />
               </div>
               <div>
                 <p className="lnm__notice-title">Not Legal Advice</p>
@@ -101,7 +112,7 @@ export default function LegalNoticeModal({ isOpen, onAccept, onClose }) {
 
             <div className="lnm__notice">
               <div className="lnm__notice-icon lnm__notice-icon--amber">
-                <AlertTriangle size={18} />
+                <AlertTriangle size={18} aria-hidden="true" />
               </div>
               <div>
                 <p className="lnm__notice-title">No Individual Legal Help</p>
@@ -115,7 +126,7 @@ export default function LegalNoticeModal({ isOpen, onAccept, onClose }) {
 
             <div className="lnm__notice">
               <div className="lnm__notice-icon lnm__notice-icon--gray">
-                <RefreshCw size={18} />
+                <RefreshCw size={18} aria-hidden="true" />
               </div>
               <div>
                 <p className="lnm__notice-title">Laws May Have Changed</p>
@@ -167,7 +178,7 @@ export default function LegalNoticeModal({ isOpen, onAccept, onClose }) {
             aria-disabled={!allChecked}
           >
             I Agree — Create Account
-            <ArrowRight size={16} />
+            <ArrowRight size={16} aria-hidden="true" />
           </button>
         </div>
 

@@ -19,7 +19,6 @@ import Comparison from './pages/Comparison';
 import WaitingScreen from './pages/WaitingScreen';
 import ResolutionReview from './pages/ResolutionReview';
 import AdminQuestionEditor from './pages/AdminQuestionEditor';
-import FinalResolution from './pages/FinalResolution';
 import AdminView from './pages/AdminView';
 import FormDesigner from './pages/FormDesigner';
 import { FormProvider } from './context/FormContext';
@@ -92,7 +91,6 @@ function App() {
             <Route path="/comparison/:caseId" element={<Comparison />} />
             <Route path="/waiting/:caseId" element={<WaitingScreen />} />
             <Route path="/resolution-review/:caseId" element={<ResolutionReview />} />
-            <Route path="/resolution/:caseId" element={<FinalResolution />} />
 
             {/* Catch all - redirect unknown routes to home */}
             <Route path="*" element={<Navigate to="/" replace />} />

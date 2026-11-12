@@ -92,7 +92,7 @@ export default function SignUp() {
   };
 
   return (
-    <div className="auth-page">
+    <main className="auth-page">
       <LegalNoticeModal
         isOpen={showLegalNotice}
         onAccept={handleLegalAccept}
@@ -179,6 +179,6 @@ export default function SignUp() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

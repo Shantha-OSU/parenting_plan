@@ -129,6 +129,7 @@ export default function ParentalRights() {
                                 return (
                                   <>
                                     <RadioQuestion
+                                        key={question.qKey}
                                         question={question.qText}
                                         help={question.qIntro}
                                         name={question.qKey}
@@ -137,6 +138,7 @@ export default function ParentalRights() {
                                         flag={childrenApplicationFlag}
                                         error={errors.currAnswer}
                                         options={question.options}
+                                        autoFocus
                                     />
                                     {question.qDisclaimer && (
                                         <Disclaimer variant="warning">
@@ -150,6 +152,7 @@ export default function ParentalRights() {
                                 return (
                                   <>
                                     <TextQuestion
+                                        key={question.qKey}
                                         question={question.qText}
                                         id={question.qKey}
                                         value={currAnswer}
@@ -157,6 +160,7 @@ export default function ParentalRights() {
                                         flag={childrenApplicationFlag}
                                         error={errors.currAnswer}
                                         required
+                                        autoFocus
                                     />
                                     {question.qIntro && (
                                         <Disclaimer variant="info">

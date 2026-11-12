@@ -85,6 +85,11 @@
 }
 
 .context-menu li {
+  margin: 0;
+}
+
+.context-menu__item {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -92,19 +97,29 @@
   border-radius: 6px;
   font-size: 0.875rem;
   color: #374151;
+  background: transparent;
+  border: 0;
+  text-align: left;
   cursor: pointer;
   transition: background-color 0.15s;
 }
 
-.context-menu li:hover {
+.context-menu__item:hover,
+.context-menu__item:focus-visible {
   background-color: #f3f4f6;
+}
+
+.context-menu__item:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
 }
 
 .context-menu__delete {
   color: #ef4444 !important;
 }
 
-.context-menu__delete:hover {
+.context-menu__delete:hover,
+.context-menu__delete:focus-visible {
   background-color: #fef2f2 !important;
 }
 
@@ -178,7 +193,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: #14abdd;
+  background-color: #087da2;
   color: #ffffff;
   border: none;
   border-radius: 50px;
@@ -198,7 +213,7 @@
 
 .dashboard__invite-note {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 /* ── Your Plans Section ── */
@@ -244,8 +259,8 @@
   align-items: center;
   gap: 0.35rem;
   background-color: transparent;
-  color: #14abdd;
-  border: 2px solid #14abdd;
+  color: #087da2;
+  border: 2px solid #087da2;
   border-radius: 50px;
   padding: 0.5rem 1.2rem;
   font-size: 0.9rem;
@@ -255,9 +270,9 @@
 }
 
 .dashboard__new-plan-btn:hover {
-  background-color: #14abdd;
+  background-color: #087da2;
   color: #ffffff;
-  border-color: #14abdd;
+  border-color: #087da2;
 }
 
 .dashboard__plans-grid {
@@ -345,10 +360,14 @@
   font-weight: 700;
   color: #111827;
   border: none;
-  border-bottom: 2px solid #14abdd;
-  outline: none;
+  border-bottom: 2px solid #087da2;
   background: transparent;
   width: 100%;
+}
+
+.plan-card__name-input:focus-visible {
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
 }
 
 .plan-card__meta {
@@ -356,12 +375,12 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 .plan-card__open-btn {
   width: 100%;
-  background-color: #14abdd;
+  background-color: #087da2;
   color: #ffffff;
   border: none;
   border-radius: 50px;
@@ -396,8 +415,8 @@
 }
 
 .plan-card__invite-btn:hover {
-  border-color: #14abdd;
-  color: #14abdd;
+  border-color: #087da2;
+  color: #087da2;
   background-color: #ffffff;
 }
 
@@ -418,7 +437,7 @@
   }
 
   .delete-modal__body {
-    color: #9ca3af;
+    color: #6b7280;
   }
 
   .delete-modal__cancel {
@@ -478,11 +497,11 @@
   }
 
   .dashboard__invite-description {
-    color: #9ca3af;
+    color: #6b7280;
   }
 
   .dashboard__invite-btn {
-    background-color: #14abdd;
+    background-color: #087da2;
   }
 
   .dashboard__invite-btn:hover {
@@ -490,7 +509,7 @@
   }
 
   .dashboard__invite-note {
-    color: #9ca3af;
+    color: #6b7280;
   }
 
   /* Plans section */
@@ -505,19 +524,19 @@
   }
 
   .dashboard__admin-btn:hover {
-    border-color: #14abdd;
+    border-color: #087da2;
     background-color: #27384a;
     color: #67d5f5;
   }
 
   .dashboard__new-plan-btn {
     background-color: transparent;
-    color: #14abdd;
-    border-color: #14abdd;
+    color: #087da2;
+    border-color: #087da2;
   }
 
   .dashboard__new-plan-btn:hover {
-    background-color: #14abdd;
+    background-color: #087da2;
     color: #ffffff;
   }
 
@@ -549,20 +568,20 @@
   }
 
   .plan-card__edit-btn:hover {
-    color: #9ca3af;
+    color: #6b7280;
   }
 
   .plan-card__name-input {
     color: #e5e7eb;
-    border-bottom-color: #14abdd;
+    border-bottom-color: #087da2;
   }
 
   .plan-card__meta {
-    color: #9ca3af;
+    color: #6b7280;
   }
 
   .plan-card__open-btn {
-    background-color: #14abdd;
+    background-color: #087da2;
   }
 
   .plan-card__open-btn:hover {
@@ -576,8 +595,8 @@
   }
 
   .plan-card__invite-btn:hover {
-    border-color: #14abdd;
-    color: #14abdd;
+    border-color: #087da2;
+    color: #087da2;
     background-color: #374151;
   }
 }
@@ -610,7 +629,7 @@
 }
 
 .plan-card--shared {
-  border: 1.5px solid #14abdd;
+  border: 1.5px solid #087da2;
 }
 
 .plan-card__shared-badge {
@@ -618,7 +637,7 @@
   align-items: center;
   gap: 4px;
   background: #e0f5fc;
-  color: #14abdd;
+  color: #087da2;
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;

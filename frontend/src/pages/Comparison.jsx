@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { buildApiUrl } from '../lib/apiClient';
 import { CUSTOM_COMPARISON_QUESTIONS } from '../lib/comparisonQuestionDefinitions';
 import { answerText, fetchStandardTemplate, FormTemplatePrintDocument, loadTemplate } from './FormDesigner';
-import { CheckCircle, AlertTriangle, Users, ArrowLeft, Printer } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Users, ArrowLeft, Printer, Calendar, Flag } from 'lucide-react';
 import './Comparison.css';
 import './FormDesigner.css';
 
@@ -60,12 +60,12 @@ function formatSlot(slot) {
   return start && end ? `${start}–${end}` : start || end;
 }
 
-function RegularScheduleGrid({ parent1Schedule = {}, parent2Schedule = {} }) {
-  const parent1 = parent1Schedule && typeof parent1Schedule === 'object' ? parent1Schedule : {};
-  const parent2 = parent2Schedule && typeof parent2Schedule === 'object' ? parent2Schedule : {};
-
+function RegularScheduleCalendar({ schedule, owner, viewerRole, title }) {
   return (
-    <div className="comparison__regular-schedule" aria-label="Regular parenting schedule">
+    <div className={`comparison__regular-schedule comparison__regular-schedule--${owner}`} aria-label={title || `${owner === 'parent1' ? 'You' : 'Co-parent'} regular parenting schedule`}>
+      <h4 className="comparison__schedule-heading">
+        {title || (owner === viewerRole ? 'Your plan schedule' : "Co-parent's plan schedule")}
+      </h4>
       <div className="comparison__weekly-grid">
         <div className="comparison__weekday-header">
           <span />
@@ -76,15 +76,14 @@ function RegularScheduleGrid({ parent1Schedule = {}, parent2Schedule = {} }) {
             <span className="comparison__week-label">Week {week + 1}</span>
             {[0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => {
               const dayIndex = week * 7 + dayOfWeek;
-              const slots = [
-                ...(Array.isArray(parent1[dayIndex]) ? parent1[dayIndex].map((slot) => ({ ...slot, owner: 'parent1' })) : []),
-                ...(Array.isArray(parent2[dayIndex]) ? parent2[dayIndex].map((slot) => ({ ...slot, owner: 'parent2' })) : []),
-              ];
+              const slots = Array.isArray(schedule[dayIndex]) ? schedule[dayIndex] : [];
               return (
                 <div className={`comparison__day-cell ${slots.length ? 'comparison__day-cell--assigned' : ''}`} key={dayIndex}>
                   {slots.map((slot, index) => (
-                    <div className={`comparison__day-slot comparison__day-slot--${slot.owner}`} key={`${dayIndex}-${slot.owner}-${index}`}>
-                      <strong>{slot.owner === 'parent2' ? 'Parent 2' : 'Parent 1'}</strong>
+                    <div className={`comparison__day-slot comparison__day-slot--${slot.parent || 'unassigned'}`} key={`${dayIndex}-${index}`}>
+                      <strong>
+                        {slot.parent === viewerRole ? 'You' : slot.parent ? 'Co-parent' : 'Unassigned'}
+                      </strong>
                       {formatSlot(slot) || 'No time set'}
                     </div>
                   ))}
@@ -94,6 +93,18 @@ function RegularScheduleGrid({ parent1Schedule = {}, parent2Schedule = {} }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function RegularScheduleGrid({ parent1Schedule = {}, parent2Schedule = {}, viewerRole = 'parent1' }) {
+  const parent1 = parent1Schedule && typeof parent1Schedule === 'object' ? parent1Schedule : {};
+  const parent2 = parent2Schedule && typeof parent2Schedule === 'object' ? parent2Schedule : {};
+
+  return (
+    <div className="comparison__regular-schedules" aria-label="Regular parenting schedule comparison">
+      <RegularScheduleCalendar schedule={parent1} owner="parent1" viewerRole={viewerRole} />
+      <RegularScheduleCalendar schedule={parent2} owner="parent2" viewerRole={viewerRole} />
     </div>
   );
 }
@@ -116,7 +127,7 @@ function formatCalendarDetails(details) {
   return parts.join(' · ') || 'No preference entered';
 }
 
-function HolidayScheduleComparison({ parent1Schedule = {}, parent2Schedule = {} }) {
+function HolidayScheduleComparison({ parent1Schedule = {}, parent2Schedule = {}, viewerRole = 'parent1' }) {
   const parent1 = parent1Schedule && typeof parent1Schedule === 'object' ? parent1Schedule : {};
   const parent2 = parent2Schedule && typeof parent2Schedule === 'object' ? parent2Schedule : {};
   const names = [...new Set([...Object.keys(parent1), ...Object.keys(parent2)])];
@@ -132,10 +143,10 @@ function HolidayScheduleComparison({ parent1Schedule = {}, parent2Schedule = {} 
           <div className="comparison__calendar-row" key={name}>
             <div className="comparison__calendar-name">{name}</div>
             <div className="comparison__calendar-answer comparison__calendar-answer--parent1">
-              <strong>Parent 1</strong> {formatCalendarDetails(parent1[name])}
+              <strong>{viewerRole === 'parent1' ? 'You' : 'Co-parent'}</strong> {formatCalendarDetails(parent1[name])}
             </div>
             <div className="comparison__calendar-answer comparison__calendar-answer--parent2">
-              <strong>Parent 2</strong> {formatCalendarDetails(parent2[name])}
+              <strong>{viewerRole === 'parent2' ? 'You' : 'Co-parent'}</strong> {formatCalendarDetails(parent2[name])}
             </div>
           </div>
         ))}
@@ -144,14 +155,96 @@ function HolidayScheduleComparison({ parent1Schedule = {}, parent2Schedule = {} 
   );
 }
 
-export function ScheduleAnswer({ questionKey, value, answerOwner, parent1Value, parent2Value }) {
-  const firstScheduleValue = parent1Value ?? (answerOwner === 'parent1' ? value : {});
-  const secondScheduleValue = parent2Value ?? (answerOwner === 'parent2' ? value : {});
+function MergedCalendarSchedule({ schedule = {} }) {
+  const entries = Object.entries(schedule);
+
+  if (entries.length === 0) {
+    return <span className="comparison__answer-value">No entries entered</span>;
+  }
+
+  return (
+    <div className="comparison__calendar-comparison" aria-label="Merged holiday and school schedule">
+      <div className="comparison__calendar-rows">
+        {entries.map(([name, details]) => (
+          <div className="comparison__calendar-row comparison__calendar-row--merged" key={name}>
+            <div className="comparison__calendar-name">{name}</div>
+            <div className="comparison__calendar-answer comparison__calendar-answer--merged">
+              {formatCalendarDetails(details)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ScheduleAnswer({
+  questionKey,
+  value,
+  answerOwner,
+  parent1Value,
+  parent2Value,
+  viewerRole,
+  merged = false,
+}) {
+  const currentViewerRole = viewerRole || answerOwner || 'parent1';
+  const mergedScheduleValue = merged
+    && value
+    && typeof value === 'object'
+    && !value.scheduleScope
+    && !value.schedulesByChild
+    && !Object.keys(value).some((key) => /^\d+$/.test(key))
+    ? value.parent1 || value.parent2 || value.schedule || value
+    : value;
+  const firstScheduleValue = parent1Value ?? (merged ? mergedScheduleValue : (answerOwner === 'parent1' ? value : {}));
+  const secondScheduleValue = parent2Value ?? (merged ? {} : (answerOwner === 'parent2' ? value : {}));
   const firstSchedule = firstScheduleValue && typeof firstScheduleValue === 'object' ? firstScheduleValue : {};
   const secondSchedule = secondScheduleValue && typeof secondScheduleValue === 'object' ? secondScheduleValue : {};
 
   if (!Object.keys(firstSchedule).length && !Object.keys(secondSchedule).length) {
     return <span className="comparison__answer-value">Not scheduled</span>;
+  }
+
+  if (merged) {
+    if (firstSchedule.scheduleScope === 'byChild') {
+      return (
+        <div className="comparison__child-schedules">
+          {Object.entries(firstSchedule.schedulesByChild || {}).map(([childId, child]) => {
+            const childSchedule = child.schedule || child;
+            return (
+              <section className="comparison__child-schedule" key={childId}>
+                <h4>{child.childName || childId}</h4>
+                {questionKey.endsWith('.parentingSchedule') ? (
+                  <RegularScheduleCalendar
+                    schedule={childSchedule}
+                    owner="merged"
+                    viewerRole={currentViewerRole}
+                    title="Merged plan schedule"
+                  />
+                ) : (
+                  <MergedCalendarSchedule schedule={childSchedule} />
+                )}
+              </section>
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (firstSchedule.scheduleScope === 'later') {
+      return <span className="comparison__answer-value">Schedule will be determined later</span>;
+    }
+
+    return questionKey.endsWith('.parentingSchedule') ? (
+      <RegularScheduleCalendar
+        schedule={firstSchedule}
+        owner="merged"
+        viewerRole={currentViewerRole}
+        title="Merged plan schedule"
+      />
+    ) : (
+      <MergedCalendarSchedule schedule={firstSchedule} />
+    );
   }
 
   if (firstSchedule.scheduleScope === 'byChild' || secondSchedule.scheduleScope === 'byChild') {
@@ -173,11 +266,13 @@ export function ScheduleAnswer({ questionKey, value, answerOwner, parent1Value, 
                 <RegularScheduleGrid
                   parent1Schedule={firstChildSchedule}
                   parent2Schedule={secondChildSchedule}
+                  viewerRole={currentViewerRole}
                 />
               ) : (
                 <HolidayScheduleComparison
                   parent1Schedule={firstChildSchedule}
                   parent2Schedule={secondChildSchedule}
+                  viewerRole={currentViewerRole}
                 />
               )}
             </section>
@@ -202,12 +297,14 @@ export function ScheduleAnswer({ questionKey, value, answerOwner, parent1Value, 
     return <RegularScheduleGrid
       parent1Schedule={firstSchedule}
       parent2Schedule={secondSchedule}
+      viewerRole={currentViewerRole}
     />;
   }
 
   return <HolidayScheduleComparison
     parent1Schedule={firstSchedule}
     parent2Schedule={secondSchedule}
+    viewerRole={currentViewerRole}
   />;
 }
 
@@ -235,6 +332,28 @@ export default function Comparison() {
   const [restartStatus, setRestartStatus] = useState('idle');
   const [standardComparisonTemplate, setStandardComparisonTemplate] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
+
+  const handleTabKeyDown = (event) => {
+    const tabs = [...event.currentTarget.parentElement.querySelectorAll('[role="tab"]')];
+    const currentIndex = tabs.indexOf(event.currentTarget);
+    let nextIndex;
+
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = tabs.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    tabs[nextIndex].focus();
+    tabs[nextIndex].click();
+  };
 
   useEffect(() => {
     if (!isPrinting) return undefined;
@@ -428,7 +547,7 @@ export default function Comparison() {
     return annotateCurrentParent(String(val));
   };
 
-  const renderAnswer = (value, answerOwner, questionKey, parent1Value, parent2Value) => (
+  const renderAnswer = (value, answerOwner, questionKey, parent1Value, parent2Value, merged = false) => (
     SCHEDULE_KEYS.has(questionKey)
       ? <ScheduleAnswer
         questionKey={questionKey}
@@ -436,6 +555,7 @@ export default function Comparison() {
         answerOwner={answerOwner}
         parent1Value={parent1Value}
         parent2Value={parent2Value}
+        merged={merged}
       />
       : formatAnswer(value, answerOwner, questionKey)
   );
@@ -467,12 +587,18 @@ export default function Comparison() {
       const idToken = await auth.currentUser.getIdToken();
       const resolutions = disagreed.map((item) => {
         const sel = selections[item.questionKey];
+        const flaggedForDiscussion = sel.choice === 'flagged';
         const proposedAnswer = sel.choice === 'parent1'
           ? item.parent1Answer
           : sel.choice === 'parent2'
             ? item.parent2Answer
             : sel.customText.trim();
-        return { qKey: item.questionKey, proposedAnswer, source: sel.choice };
+        return {
+          qKey: item.questionKey,
+          proposedAnswer: flaggedForDiscussion ? item.parent1Answer : proposedAnswer,
+          source: flaggedForDiscussion ? 'parent1' : sel.choice,
+          flaggedForDiscussion,
+        };
       });
 
       const res = await fetch(buildApiUrl(`/api/v1/cases/${caseId}/resolutions`), {
@@ -519,9 +645,9 @@ export default function Comparison() {
   if (error) {
     return (
       <div className="comparison comparison--centered">
-        <AlertTriangle size={40} color="#f97316" />
+        <AlertTriangle size={40} color="#f97316" aria-hidden="true" />
         <p className="comparison__error">{error}</p>
-        <button className="comparison__back-btn" onClick={() => navigate('/review')}>Back to Review</button>
+        <Link className="comparison__back-btn" to="/review">Back to Review</Link>
       </div>
     );
   }
@@ -529,10 +655,10 @@ export default function Comparison() {
   if (caseStatus === 'waiting_for_coparent') {
     return (
       <div className="comparison comparison--centered">
-        <Users size={48} color="#14abdd" />
+        <Users size={48} color="#14abdd" aria-hidden="true" />
         <h2>Waiting for Co-parent</h2>
         <p>Your co-parent hasn't joined yet. Once they accept the invite, you'll see the comparison here.</p>
-        <button className="comparison__back-btn" onClick={() => navigate('/review')}>Back to Review</button>
+        <Link className="comparison__back-btn" to="/review">Back to Review</Link>
       </div>
     );
   }
@@ -567,10 +693,11 @@ export default function Comparison() {
         };
       }
       if (!SCHEDULE_KEYS.has(item.qKey)) return item;
+      if (item.qKey.endsWith('.parentingSchedule')) return item;
       return {
         ...item,
         answer: {
-          parent1: difference?.parent1Answer || {},
+          parent1: difference?.parent1Answer || item.answer || {},
           parent2: difference?.parent2Answer || {},
         },
       };
@@ -581,38 +708,53 @@ export default function Comparison() {
       <>
       <div className="comparison">
         <div className="comparison__header">
-          <button className="comparison__nav-back" onClick={() => navigate('/review')}>
-            <ArrowLeft size={18} /> Review
-          </button>
+          <Link className="comparison__nav-back" to="/review">
+            <ArrowLeft size={18} aria-hidden="true" /> Review
+          </Link>
           <div>
             <h1 className="comparison__title">Final Parenting Plan Comparison</h1>
             <p className="comparison__subtitle">
-              <CheckCircle size={16} color="#22c55e" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+              <CheckCircle size={16} color="#22c55e" aria-hidden="true" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
               {agreedItems.length} agreed, {discussionItems.length} need discussion
             </p>
           </div>
         </div>
-        <div className="comparison__tabs">
+        <div className="comparison__tabs" role="tablist" aria-label="Comparison views">
           <button
+            id="comparison-tab-agreed"
+            role="tab"
+            aria-selected={activeTab === 'merged'}
+            aria-controls="comparison-panel-agreed"
             className={`comparison__tab ${activeTab === 'merged' ? 'comparison__tab--active' : ''}`}
             onClick={() => setActiveTab('merged')}
+            onKeyDown={handleTabKeyDown}
           >
             Agreed ({agreedItems.length})
           </button>
           <button
+            id="comparison-tab-discussion"
+            role="tab"
+            aria-selected={activeTab === 'discussion'}
+            aria-controls="comparison-panel-discussion"
             className={`comparison__tab ${activeTab === 'discussion' ? 'comparison__tab--active' : ''}`}
             onClick={() => setActiveTab('discussion')}
+            onKeyDown={handleTabKeyDown}
           >
             Needs Discussion ({discussionItems.length})
           </button>
         </div>
-        <div className="comparison__content">
+        <div
+          id={activeTab === 'merged' ? 'comparison-panel-agreed' : 'comparison-panel-discussion'}
+          role="tabpanel"
+          aria-labelledby={activeTab === 'merged' ? 'comparison-tab-agreed' : 'comparison-tab-discussion'}
+          className="comparison__content"
+        >
           <div className="comparison__submit-row comparison__final-actions">
               <button
                 className="comparison__download-btn"
                 onClick={() => setIsPrinting(true)}
               >
-                <Printer size={16} /> Print / Save PDF
+                <Printer size={16} aria-hidden="true" /> Print / Save PDF
               </button>
               <button
                 className="comparison__download-btn"
@@ -622,20 +764,25 @@ export default function Comparison() {
                 {restartStatus === 'saving' ? 'Restarting...' : 'Restart Comparison'}
               </button>
               {restartStatus === 'error' && (
-                <p className="comparison__submit-error">Failed to restart. Please try again.</p>
+                <p className="comparison__submit-error" role="alert">Failed to restart. Please try again.</p>
               )}
             </div>
           {activeTab === 'merged' && agreedItems.map((item) => (
             <div key={item.qKey} className="comparison__card comparison__agreed">
               <div className="comparison__question">{questionMap[item.qKey]?.qText || item.qKey}</div>
               <div className="comparison__answer-agreed">
-                <CheckCircle size={16} color="#22c55e" />
+                <CheckCircle size={16} color="#22c55e" aria-hidden="true" />
                 {renderAnswer(
                   item.answer,
                   isParent1 ? 'parent1' : 'parent2',
                   item.qKey,
-                  diff.find((difference) => difference.questionKey === item.qKey)?.parent1Answer,
-                  diff.find((difference) => difference.questionKey === item.qKey)?.parent2Answer
+                  item.qKey.endsWith('.parentingSchedule')
+                    ? undefined
+                    : diff.find((difference) => difference.questionKey === item.qKey)?.parent1Answer,
+                  item.qKey.endsWith('.parentingSchedule')
+                    ? undefined
+                    : diff.find((difference) => difference.questionKey === item.qKey)?.parent2Answer,
+                  item.qKey.endsWith('.parentingSchedule')
                 )}
               </div>
             </div>
@@ -643,7 +790,7 @@ export default function Comparison() {
           {activeTab === 'discussion' && (
             <>
               <div className="comparison__discussion-banner">
-                <AlertTriangle size={20} color="#f97316" />
+                <AlertTriangle size={20} color="#f97316" aria-hidden="true" />
                 <p>These items still need agreement. Please discuss them together or consider seeking mediation support.</p>
               </div>
               {discussionItems.map((item) => (
@@ -652,6 +799,7 @@ export default function Comparison() {
                   {SCHEDULE_KEYS.has(item.qKey) ? (
                     <ScheduleAnswer
                       questionKey={item.qKey}
+                      viewerRole={isParent1 ? 'parent1' : 'parent2'}
                       parent1Value={diff.find((difference) => difference.questionKey === item.qKey)?.parent1Answer}
                       parent2Value={diff.find((difference) => difference.questionKey === item.qKey)?.parent2Answer}
                     />
@@ -667,7 +815,7 @@ export default function Comparison() {
                           )}
                         </div>
                       </div>
-                      <div className="comparison__answer-divider"><AlertTriangle size={16} color="#f97316" /></div>
+                      <div className="comparison__answer-divider"><AlertTriangle size={16} color="#f97316" aria-hidden="true" /></div>
                       <div className="comparison__answer-col">
                         <span className="comparison__parent-label">{parentNames.parent2}'s answer</span>
                         <div className="comparison__answer-value">
@@ -717,34 +865,49 @@ export default function Comparison() {
   return (
     <div className="comparison">
       <div className="comparison__header">
-        <button className="comparison__nav-back" onClick={() => navigate('/review')}>
-          <ArrowLeft size={18} /> Review
-        </button>
+        <Link className="comparison__nav-back" to="/review">
+          <ArrowLeft size={18} aria-hidden="true" /> Review
+        </Link>
         <div>
           <h1 className="comparison__title">Parenting Plan Comparison</h1>
           <p className="comparison__subtitle">
-            <CheckCircle size={16} color="#22c55e" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+            <CheckCircle size={16} color="#22c55e" aria-hidden="true" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
             {agreed.length} of {diff.length} questions in agreement
           </p>
         </div>
       </div>
 
-      <div className="comparison__tabs">
+      <div className="comparison__tabs" role="tablist" aria-label="Comparison views">
         <button
+          id="comparison-tab-agreed"
+          role="tab"
+          aria-selected={activeTab === 'merged'}
+          aria-controls="comparison-panel-agreed"
           className={`comparison__tab ${activeTab === 'merged' ? 'comparison__tab--active' : ''}`}
           onClick={() => setActiveTab('merged')}
+          onKeyDown={handleTabKeyDown}
         >
           Agreed ({agreed.length})
         </button>
         <button
+          id="comparison-tab-differences"
+          role="tab"
+          aria-selected={activeTab === 'differences'}
+          aria-controls="comparison-panel-differences"
           className={`comparison__tab ${activeTab === 'differences' ? 'comparison__tab--active' : ''}`}
           onClick={() => setActiveTab('differences')}
+          onKeyDown={handleTabKeyDown}
         >
           Differences ({disagreed.length})
         </button>
       </div>
 
-      <div className="comparison__content">
+      <div
+        id={activeTab === 'merged' ? 'comparison-panel-agreed' : 'comparison-panel-differences'}
+        role="tabpanel"
+        aria-labelledby={activeTab === 'merged' ? 'comparison-tab-agreed' : 'comparison-tab-differences'}
+        className="comparison__content"
+      >
         {activeTab === 'merged' && (
           <div>
             <div className="comparison__section-header">
@@ -758,7 +921,7 @@ export default function Comparison() {
                 <div key={item.questionKey} className="comparison__card comparison__agreed">
                   <div className="comparison__question">{questionMap[item.questionKey]?.qText || item.questionKey}</div>
                   <div className="comparison__answer-agreed">
-                    <CheckCircle size={16} color="#22c55e" />
+                    <CheckCircle size={16} color="#22c55e" aria-hidden="true" />
                     {renderAnswer(
                       isParent1 ? item.parent1Answer : item.parent2Answer,
                       isParent1 ? 'parent1' : 'parent2',
@@ -793,18 +956,47 @@ export default function Comparison() {
                   <div key={item.questionKey} className="comparison__card comparison__disagreed">
                     <div className="comparison__question">{questionMap[item.questionKey]?.qText || item.questionKey}</div>
                     {SCHEDULE_KEYS.has(item.questionKey) ? (
-                      <ScheduleAnswer
-                        questionKey={item.questionKey}
-                        parent1Value={item.parent1Answer}
-                        parent2Value={item.parent2Answer}
-                      />
+                      <>
+                        <ScheduleAnswer
+                          questionKey={item.questionKey}
+                          viewerRole={isParent1 ? 'parent1' : 'parent2'}
+                          parent1Value={item.parent1Answer}
+                          parent2Value={item.parent2Answer}
+                        />
+                        {isParent1 && (
+                          <div className="comparison__schedule-actions" aria-label="Schedule resolution actions">
+                            <Link
+                              className="comparison__schedule-action comparison__schedule-action--navigate"
+                              to="/parenting-time-communication"
+                            >
+                              <Calendar size={15} aria-hidden="true" /> Go to Schedules
+                            </Link>
+                            <button
+                              type="button"
+                              className={`comparison__schedule-action comparison__schedule-action--accept ${sel.choice === 'parent2' ? 'comparison__schedule-action--selected' : ''}`}
+                              aria-pressed={sel.choice === 'parent2'}
+                              onClick={() => setSelection(item.questionKey, 'parent2')}
+                            >
+                              <CheckCircle size={15} aria-hidden="true" /> Accept Schedule
+                            </button>
+                            <button
+                              type="button"
+                              className={`comparison__schedule-action comparison__schedule-action--flag ${sel.choice === 'flagged' ? 'comparison__schedule-action--selected' : ''}`}
+                              aria-pressed={sel.choice === 'flagged'}
+                              onClick={() => setSelection(item.questionKey, 'flagged')}
+                            >
+                              <Flag size={15} aria-hidden="true" /> Flag for Discussion
+                            </button>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className="comparison__answer-row">
                         <div className="comparison__answer-col">
                           <span className="comparison__parent-label">{parent1Name} answer</span>
                           <div className="comparison__answer-value">{renderAnswer(item.parent1Answer, 'parent1', item.questionKey)}</div>
                         </div>
-                      <div className="comparison__answer-divider"><AlertTriangle size={16} color="#f97316" /></div>
+                      <div className="comparison__answer-divider"><AlertTriangle size={16} color="#f97316" aria-hidden="true" /></div>
                       <div className="comparison__answer-col">
                         <span className="comparison__parent-label">{parent2Name} answer</span>
                         <div className="comparison__answer-value">{renderAnswer(item.parent2Answer, 'parent2', item.questionKey)}</div>
@@ -812,7 +1004,7 @@ export default function Comparison() {
                       </div>
                     )}
 
-                    {isParent1 && (
+                    {isParent1 && !SCHEDULE_KEYS.has(item.questionKey) && (
                       <div className="comparison__resolution-choices">
                         <label className={`comparison__choice ${sel.choice === 'parent1' ?  'comparison__choice--selected' : ''}`}>
                           <input type="radio" name={item.questionKey} value="parent1" checked={sel.choice === 'parent1'} onChange={() => setSelection(item.questionKey, 'parent1')} />
@@ -855,8 +1047,11 @@ export default function Comparison() {
                   <p className="comparison__submit-hint">Resolve all differences above to continue.</p>
                 )}
                 {submitStatus === 'error' && (
-                  <p className="comparison__submit-error">Failed to send. Please try again.</p>
+                  <p className="comparison__submit-error" role="alert">Failed to send. Please try again.</p>
                 )}
+                <p className="sr-only" aria-live="polite">
+                  {submitStatus === 'saving' ? 'Sending resolutions to your co-parent.' : submitStatus === 'saved' ? 'Resolutions sent.' : ''}
+                </p>
               </div>
             )}
           </div>

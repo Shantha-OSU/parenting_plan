@@ -67,20 +67,20 @@
   height: 1rem;
   margin-top: 0.25rem;
   cursor: pointer;
-  accent-color: #14abdd;
+  accent-color: #087da2;
   flex-shrink: 0;
 }
 
 /* Checked state for checkbox options */
 .radio-option--checked {
-  border-color: #14abdd;
+  border-color: #087da2;
   background-color: rgba(20, 171, 221, 0.1);
 }
 
 /* Checkmark badge inside the checkbox row */
 .child-answer-badge {
   margin-left: auto;
-  color: #14abdd;
+  color: #087da2;
   display: flex;
   align-items: center;
 }
@@ -113,13 +113,14 @@
 }
 
 .tax-custom-years__input:focus {
-  outline: none;
-  border-color: #14abdd;
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
+  border-color: #087da2;
   box-shadow: 0 0 0 3px rgba(20, 171, 221, 0.15);
 }
 
 .tax-custom-years__input::placeholder {
-  color: #9ca3af;
+  color: #6b7280;
 }
 
 /* ── Sub-answer block (tax years follow-up) ──────────────────────────────── */
@@ -151,7 +152,7 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 50%;
-  background-color: #14abdd;
+  background-color: #087da2;
   color: #ffffff;
   font-weight: 700;
   font-size: 1rem;
@@ -176,7 +177,7 @@
 
 .child-tax-block__status {
   margin-left: auto;
-  color: #14abdd;
+  color: #087da2;
   display: flex;
   align-items: center;
 }
@@ -234,6 +235,6 @@
   }
 
   .tax-none-note {
-    color: #9ca3af;
+    color: #6b7280;
   }
 }

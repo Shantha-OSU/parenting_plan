@@ -49,8 +49,8 @@
 .user-icon, .info-icon, .users-icon, .house-icon, .scale-icon, .car-icon {
   width: 3rem;
   height: 3rem;
-  background-color: #14abdd29;
-  color: #14abdd;
+  background-color: #087da229;
+  color: #087da2;
   border-radius: 100%;
   display: flex;
   align-items: center;
@@ -247,8 +247,8 @@
 }
 
 .add-child-btn:hover {
-  border-color: #14abdd;
-  color: #14abdd;
+  border-color: #087da2;
+  color: #087da2;
   background-color: rgba(20, 171, 221, 0.05);
 }
 
@@ -334,7 +334,7 @@
 
   [data-slot="card-description"],
   .page-card > p {
-    color: #9ca3af;
+    color: #6b7280;
   }
 
   [data-slot="card-heading-question-bold"],
@@ -347,7 +347,7 @@
   }
 
   .section-intro {
-    color: #9ca3af;
+    color: #6b7280;
   }
 
   .section-divider {
@@ -357,12 +357,12 @@
   .add-child-btn {
     background-color: #1f2937;
     border-color: #374151;
-    color: #9ca3af;
+    color: #6b7280;
   }
 
   .add-child-btn:hover {
-    border-color: #14abdd;
-    color: #14abdd;
+    border-color: #087da2;
+    color: #087da2;
     background-color: rgba(20, 171, 221, 0.1);
   }
 
@@ -382,11 +382,11 @@
   }
 
   .policy-description-group li {
-    color: #9ca3af;
+    color: #6b7280;
   }
 
   .or-divider {
-    color: #9ca3af;
+    color: #6b7280;
   }
 
   .remove-child-btn {
@@ -528,7 +528,7 @@
 /* Dark mode overrides for info-section */
 @media (prefers-color-scheme: dark) {
   .info-section__description {
-    color: #9ca3af;
+    color: #6b7280;
   }
 }
 
@@ -677,7 +677,7 @@
   padding: 8px 16px;
   border: none;
   border-radius: 8px;
-  background: #14abdd;
+  background: #087da2;
   color: #fff;
   font-size: 0.875rem;
   font-weight: 600;
@@ -720,7 +720,7 @@
   align-self: center;
   display: block;
   padding-left: 0.75rem;
-  border-left: 3px solid var(--input-border-focus, #14abdd);
+  border-left: 3px solid var(--input-border-focus, #087da2);
   color: var(--heading-color, var(--text-color, #374151));
   font-size: 1rem;
   font-weight: 750;
@@ -746,7 +746,8 @@
 }
 
 .schedule-scope-controls select:focus-visible {
-  outline: none;
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
   border-color: var(--primary-color, #2563eb);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color, #2563eb) 18%, transparent);
 }

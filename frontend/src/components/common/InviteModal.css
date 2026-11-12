@@ -120,7 +120,6 @@
   padding: 0.65rem 1rem;
   font-size: 0.9rem;
   color: #374151;
-  outline: none;
   font-family: inherit;
   transition: border-color 0.2s;
 }
@@ -130,6 +129,8 @@
 }
 
 .invite-modal__email-input:focus {
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
   border-color: #14abdd;
 }
 

@@ -156,6 +156,6 @@ export default function SignIn() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
