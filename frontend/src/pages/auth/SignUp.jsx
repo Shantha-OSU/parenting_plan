@@ -98,12 +98,17 @@ export default function SignUp() {
         onAccept={handleLegalAccept}
         onClose={handleLegalClose}
       />
+
+      <header className="auth-top-nav">
+        <Link to="/" className="auth-top-nav__logo" aria-label="Return to ShareCare home">
+          <img src={logo} alt="ShareCare" />
+        </Link>
+        <Link to="/how-it-works" className="auth-top-nav__link">
+          How it works
+        </Link>
+      </header>
       
       <div className="auth-container">
-        <div className="auth-logo">
-          <img src={logo} alt="ShareCare" />
-        </div>
-
         <Card className="auth-card">
           <CardHeader>
             <CardTitle>Welcome!</CardTitle>

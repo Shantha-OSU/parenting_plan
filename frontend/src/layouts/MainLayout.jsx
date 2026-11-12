@@ -52,6 +52,12 @@ export default function Layout({ children }) {
   }, []);
 
   useEffect(() => {
+    if (window.innerWidth < 768) {
+      setIsSidebarCollapsed(true);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) navigate('/signin');
       else setUser(currentUser);
@@ -391,11 +397,22 @@ export default function Layout({ children }) {
         onToggle={toggleSidebar}
       />
 
+      {!isSidebarCollapsed && (
+        <button
+          type="button"
+          className="layout__sidebar-backdrop"
+          aria-label="Close navigation menu"
+          onClick={() => setIsSidebarCollapsed(true)}
+        />
+      )}
+
       <div className={`layout__main ${isSidebarCollapsed ? 'layout__main--sidebar-collapsed' : ''}`}>
         {shouldShowHeader && (
           <Header
             showNavigation={false} // Navigation is now in sidebar
             saved={false} // You can pass saved state if needed
+            onMenuToggle={toggleSidebar}
+            isMenuOpen={!isSidebarCollapsed}
           />
         )}
 

@@ -50,6 +50,21 @@
   display: flex;
   align-items: center;
   gap: 1rem;
+  min-width: 0;
+}
+
+.header__menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #374151;
 }
 
 .header__user {
@@ -61,6 +76,9 @@
 .header__user-label {
   font-size: 0.875rem;
   color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header__user-label strong {
@@ -127,5 +145,27 @@
 
   .header__logo {
     height: 32px;
+    max-width: 48vw;
+    object-fit: contain;
+  }
+
+  .header__menu-btn {
+    display: inline-flex;
+  }
+
+  .header__right {
+    gap: 0.5rem;
+  }
+
+  .header__user {
+    gap: 0.5rem;
+  }
+
+  .header__user-label {
+    display: none;
+  }
+
+  .header__saved {
+    font-size: 0.75rem;
   }
 }

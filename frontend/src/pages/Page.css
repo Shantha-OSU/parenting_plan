@@ -444,6 +444,51 @@
     flex-direction: column;
     gap: 0;
   }
+
+  .section-header,
+  .section-header-with-flag,
+  .card-header-with-flag {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .section-header h2 {
+    font-size: 1.35rem;
+    line-height: 1.25;
+  }
+
+  .section-header-with-flag,
+  .card-header-with-flag {
+    flex-wrap: wrap;
+  }
+
+  .section-flag {
+    margin-left: 0;
+  }
+
+  [data-slot="card"] {
+    border-radius: 16px;
+    gap: 1rem;
+  }
+
+  [data-slot="card-header"]:has([data-slot="card-action"]) {
+    grid-template-columns: 1fr;
+  }
+
+  [data-slot="card-action"] {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: start;
+  }
+
+  .policy-description-group li {
+    margin-right: 0.5rem;
+  }
+
+  .info-banner {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
 }
 
 /* ── InformationSharing section headers ─────────────────────────────── */

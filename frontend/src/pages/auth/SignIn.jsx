@@ -75,12 +75,17 @@ export default function SignIn() {
   };
 
   return (
-    <main className="auth-page">
-      <div className="auth-container">
-        <div className="auth-logo">
+    <div className="auth-page">
+      <header className="auth-top-nav">
+        <Link to="/" className="auth-top-nav__logo" aria-label="Return to ShareCare home">
           <img src={logo} alt="ShareCare" />
-        </div>
+        </Link>
+        <Link to="/how-it-works" className="auth-top-nav__link">
+          How it works
+        </Link>
+      </header>
 
+      <div className="auth-container">
         <Card className="auth-card">
           <CardHeader>
             <CardTitle>Welcome Back</CardTitle>
