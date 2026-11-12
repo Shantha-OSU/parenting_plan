@@ -16,6 +16,7 @@ const Plan = require('../models/Plan');
 const StandardFormTemplate = require('../models/StandardFormTemplate');
 const verifyToken = require('../middleware/verifyToken');
 const requireVerifiedAdmin = require('../middleware/requireAdmin');
+const officialFormsRoutes = require('./officialForms');
 
 const requireDatabaseConnection = (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
@@ -279,6 +280,7 @@ router.get('/', (req, res) => {
 
 router.use('/email', emailRoutes);
 router.use('/admin', requireDatabaseConnection, adminRoutes);
+router.use(officialFormsRoutes);
 router.use('/plan', requireDatabaseConnection, planRoutes);
 router.use('/logic-engine', requireDatabaseConnection, logicRoutes);
 router.use('/v1/cases', requireDatabaseConnection, caseRoutes);

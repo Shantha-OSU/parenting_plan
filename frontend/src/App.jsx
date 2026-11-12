@@ -22,6 +22,7 @@ import AdminQuestionEditor from './pages/AdminQuestionEditor';
 import FinalResolution from './pages/FinalResolution';
 import AdminView from './pages/AdminView';
 import FormDesigner from './pages/FormDesigner';
+import AdminOfficialForms from './pages/AdminOfficialForms';
 import { FormProvider } from './context/FormContext';
 import { NavigationProvider } from './context/NavigationContext';
 import './App.css';
@@ -44,6 +45,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin" element={<AdminView />} />
         <Route path="/admin/questions" element={<AdminQuestionEditor />} />
+        <Route path="/admin/official-forms" element={<AdminOfficialForms />} />
 
             {/* Form routes with sidebar */}
             <Route path="/getting-started" element={

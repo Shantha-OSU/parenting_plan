@@ -476,7 +476,7 @@ function createQuestionToken(question) {
   };
 }
 
-const customFieldLabels = {
+export const customFieldLabels = {
   agreeToTransportationPolicy: 'Agree to the standard transportation policy',
   transportationArrangementDescription: 'Preferred transportation arrangement',
   agreeToActivityPolicy: 'Agree to the standard activity policy',
@@ -492,7 +492,7 @@ const customFieldLabels = {
   schoolActivities: 'School activity participation',
 };
 
-const customOptionValues = {
+export const customOptionValues = {
   agreeToTransportationPolicy: {
     true: 'I agree to the standard transportation policy',
     false: 'I do not agree with the standard transportation policy',

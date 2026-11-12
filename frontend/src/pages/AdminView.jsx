@@ -80,6 +80,7 @@ export default function AdminView() {
         </div>
         <nav className="admin-view__actions" aria-label="Admin navigation">
           <Link className="admin-view__link" to="/form-designer">Customize PDF form</Link>
+          <Link className="admin-view__link" to="/admin/official-forms">Map official forms</Link>
           <Link className="admin-view__link" to="/admin/questions">Edit questions</Link>
           <Link className="admin-view__link" to="/dashboard">Back to dashboard</Link>
         </nav>

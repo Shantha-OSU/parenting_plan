@@ -4,6 +4,7 @@ const Question = require('../models/Question');
 const NextQuestionRule = require('../models/NextQuestionRule');
 const verifyToken = require('../middleware/verifyToken');
 const requireAdmin = require('../middleware/requireAdmin');
+const officialFormsAdminRoutes = require('./officialFormsAdmin');
 
 const router = express.Router();
 const editableQuestionFields = [
@@ -34,6 +35,7 @@ const questionnaireSectionOrder = [
 const adminQuestionTypes = new Set(['multiple choice', 'text input']);
 
 router.use(verifyToken.withRevocationCheck(), requireAdmin);
+router.use(officialFormsAdminRoutes);
 
 function isPlainObject(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
