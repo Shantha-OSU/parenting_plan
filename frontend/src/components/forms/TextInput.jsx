@@ -36,6 +36,7 @@ export default function TextInput({
   autoComplete,
   rows = 4,
   className = '',
+  autoFocus = false,
 }) {
   const isTextarea = type === 'textarea';
 
@@ -61,6 +62,7 @@ export default function TextInput({
     placeholder,
     required,
     disabled,
+    autoFocus,
     maxLength,
     autoComplete,
     'aria-invalid': !!error,

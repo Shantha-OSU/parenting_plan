@@ -553,6 +553,181 @@ const handleChildChange = (childKey, field) => (value) => {
               </Card>
             </section>
             <hr className="section-divider" />
+
+            <section className="case-filing-status-section">
+              <SectionHeader
+                iconClassName="info-icon"
+                icon={<Info size={25} />}
+                title="Case Filing Status"
+                help="Help us understand your legal situation."
+              />
+              <RadioQuestion
+                question="Did you file the divorce, separation, or child custody case that led to this parenting plan?"
+                name="caseFilingStatus"
+                value={caseFilingStatus}
+                onChange={handleFormChange('plan', 'userRole')}
+                error={caseFilingError}
+                disclaimers={[
+                    { disclaimer: "Please note: ShareCare cannot confirm if your answer is correct or if there is an active divorce, separation, or child support case.", disclaimerVariant: "info" }
+                ]}
+                options={[
+                  { value: 'parent1/petitioner1/plaintiff',     label: 'Yes, it was me',         description: 'You will be identified as Parent 1/Petitioner 1/Plaintiff in the parenting plan' },
+                  { value: 'parent2/petitioner2/defendant',     label: 'No, my co-parent filed', description: 'You will be identified as Parent 2/Petitioner 2/Defendant in the parenting plan' },
+                  { value: 'no_case',                           label: 'No case has been filed yet by either co-parent' },
+                  { value: 'flagged',                             label: 'I\'m not sure' },
+                ]}
+              />
+            </section>
+            <hr className="section-divider" />
+
+            <section className="children-section">
+              <SectionHeader
+                iconClassName="users-icon"
+                icon={<Users size={25} />}
+                title="Your Children"
+                help="Please list the children you are including in this shared parenting plan."
+              />
+                {children.map((child, index) => (
+                  <Card key={child.key}>
+                    <CardHeader>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <CardTitle>{`Child ${index + 1}`}</CardTitle>
+                        {children.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeChild(child.key)}
+                            className="remove-child-btn"
+                            aria-label={`Remove Child ${index + 1}`}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </CardHeader>
+
+                    <CardContent>
+                      <form noValidate>
+                        <div className="form-row">
+                          <TextInput
+                            id={`child-${child.key}-firstName`}
+                            label="First Name"
+                            type="text"
+                            value={child.fName}
+                            onChange={handleChildChange(child.key, 'fName')}
+                            required
+                            placeholder="First Name"
+                            autoComplete="given-name"
+                            error={submitAttempted ? child.errors?.fName : ''}
+                          />
+
+                          <TextInput
+                            id={`child-${child.key}-lastName`}
+                            label="Last Name"
+                            type="text"
+                            value={child.lName}
+                            onChange={handleChildChange(child.key, 'lName')}
+                            required
+                            placeholder="Last Name"
+                            autoComplete="family-name"
+                            error={submitAttempted ? child.errors?.lName : ''}
+                          />
+                          <TextInput
+                            id={`child-${child.key}-age`}
+                            label="Age"
+                            type="text"
+                            value={child.age}
+                            onChange={handleChildChange(child.key, 'age')}
+                            required
+                            placeholder="Age"
+                            error={submitAttempted ? child.errors?.age : ''}
+                          />
+                        </div>
+
+                        <DatePicker
+                          id={`child-${child.key}-dateOfBirth`}
+                          label="Date of Birth"
+                          value={child.birthday}
+                          onChange={handleChildChange(child.key, 'birthday')}
+                          required
+                          max={new Date().toISOString().split('T')[0]}
+                          error={submitAttempted ? child.errors?.birthday : ''}
+                        />
+
+                        <div className="child-classification">
+                          <label className="classification-label"> Child Classification <span>(select all that apply)</span></label>
+                            <div className="checkbox-group">
+                              <Checkbox
+                                id={`child-${child.key}-under-18`}
+                                label="My child is under 18."
+                                checked={child.classifications.includes('under-18')}
+                                onChange={(checked) => {
+                                  const classifications = checked ? [...new Set([...child.classifications, 'under-18'])] : child.classifications.filter(value => value !== 'under-18');
+                                  handleChildChange(child.key, 'classifications')(classifications);
+                                }}
+                              />  
+                              <Checkbox
+                                id={`child-${child.key}-disabled`}
+                                label="My child is mentally or physically disabled in such a way that they are not able to support or maintain themselves."
+                                checked={child.classifications.includes('disabled')}
+                                onChange={(checked) => {
+                                  const classifications = checked ? [...new Set([...child.classifications, 'disabled'])] : child.classifications.filter(value => value !== 'disabled');
+                                  handleChildChange(child.key, 'classifications')(classifications);
+                                }}
+                              />
+                              <Checkbox
+                                id={`child-${child.key}-emancipated-adult`}
+                                label="My child is an emancipated adult."
+                                checked={child.classifications.includes('emancipated-adult')}
+                                onChange={(checked) => {
+                                  const classifications = checked ? [...new Set([...child.classifications, 'emancipated-adult'])] : child.classifications.filter(value => value !== 'emancipated-adult');
+                                  handleChildChange(child.key, 'classifications')(classifications);
+                                }}
+                              />
+                              {(
+                                <Disclaimer variant="info"> An “emancipated adult” is a child who received a court order that legally freed them from parental control and gave them the rights of an adult.
+                                </Disclaimer>
+                              )}
+                            </div>
+                            {child.errors?.classification && (
+                              <p className="child-classification-error">{child.errors.classification}</p>
+                            )}
+                          </div>
+                      </form>
+                    </CardContent>
+                  </Card>
+                ))}
+
+              <button
+                type="button"
+                onClick={addChild}
+                className="add-child-btn"
+              >
+                + Add Another Child
+              </button>
+            </section>
+            <hr className="section-divider" />
+
+            <section className="residential-parent-section">
+              <SectionHeader
+                iconClassName="users-icon"
+                icon={<Users size={25} />}
+                title="Residential Parent"
+                help="This means your child spends most of their time with you"
+              />
+              <RadioQuestion
+                question="Are you the residential parent?"
+                name="residentialParent"
+                value={residentialParent}
+                onChange={handleFormChange('plan', 'residentialParent')}
+                error={residentialParentError}
+                options={[
+                  { value: 'yes',   label: 'Yes, I am the residential parent' },
+                  { value: 'no',    label: 'No, I am not' }
+                ]}
+              />
+            </section>
+            <hr className="section-divider" />
+
             <section className="aggregate-data">
               <SectionHeader
                 iconClassName="info-icon"

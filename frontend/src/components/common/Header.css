@@ -24,12 +24,26 @@
 .header__logo {
   height: 50px;
   width: auto;
+}
+
+.header__logo-button {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
   cursor: pointer;
+  line-height: 0;
   transition: opacity 0.2s ease;
 }
 
-.header__logo:hover {
+.header__logo-button:hover {
   opacity: 0.8;
+}
+
+.header__logo-button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 4px;
 }
 
 .header__right {

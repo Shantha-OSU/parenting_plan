@@ -13,7 +13,7 @@ import "./RadioButton.css";
 
   @returns RadioButton component
 */
-export default function RadioButton({ name, value, checked, onChange, label, description }) {
+export default function RadioButton({ name, value, checked, onChange, label, description, autoFocus = false }) {
   return (
       <label className="radio-option">
         <input
@@ -22,6 +22,13 @@ export default function RadioButton({ name, value, checked, onChange, label, des
           value={value}
           checked={checked}
           onChange={onChange}
+          autoFocus={autoFocus}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              onChange(event);
+            }
+          }}
         />
         <span>
           <div className="radio-option-content">

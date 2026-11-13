@@ -32,7 +32,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid #e5e7eb;
-  border-top-color: #14abdd;
+  border-top-color: #087da2;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -111,8 +111,8 @@
 }
 
 .comparison__tab--active {
-  color: #14abdd;
-  border-bottom-color: #14abdd;
+  color: #087da2;
+  border-bottom-color: #087da2;
 }
 
 .comparison__content {
@@ -142,7 +142,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #14abdd;
+  background: #087da2;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -193,11 +193,11 @@
   color: #374151;
 }
 
-.comparison__answer-agreed:has(.comparison__regular-schedule) {
+.comparison__answer-agreed:has(.comparison__regular-schedules) {
   align-items: flex-start;
 }
 
-.comparison__answer-agreed .comparison__regular-schedule {
+.comparison__answer-agreed .comparison__regular-schedules {
   flex: 1;
   min-width: 0;
 }
@@ -218,7 +218,7 @@
 .comparison__parent-label {
   font-size: 12px;
   font-weight: 600;
-  color: #9ca3af;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -287,11 +287,20 @@
 }
 
 .comparison__calendar-answer--parent1 {
-  background: #14abdd;
+  background: #09b9ef;
 }
 
 .comparison__calendar-answer--parent2 {
   background: #f37b35;
+}
+
+.comparison__calendar-row--merged {
+  grid-template-columns: minmax(150px, 1fr) minmax(140px, 2fr);
+}
+
+.comparison__calendar-answer--merged {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
 }
 
 .comparison__regular-schedule {
@@ -302,6 +311,20 @@
   background: #fff;
   border: 1.5px solid #e5e7eb;
   border-radius: 10px;
+}
+
+.comparison__regular-schedules {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.comparison__schedule-heading {
+  margin: 0 0 12px;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .comparison__schedule-legend {
@@ -330,7 +353,7 @@
 }
 
 .comparison__schedule-legend-color--parent1 {
-  background: #14abdd;
+  background: #09b9ef;
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
@@ -384,7 +407,7 @@
 }
 
 .comparison__day-cell--assigned {
-  border-color: #14abdd;
+  border-color: #087da2;
 }
 
 .comparison__day-slot {
@@ -400,11 +423,19 @@
 }
 
 .comparison__day-slot--parent1 {
-  background: #14abdd;
+  background: #09b9ef;
 }
 
 .comparison__day-slot--parent2 {
   background: #f37b35;
+}
+
+.comparison__day-slot--unassigned {
+  background: #e5e7eb;
+}
+
+.comparison__day-slot--merged {
+  background: #087da2;
 }
 
 .comparison__day-slot strong,
@@ -455,13 +486,13 @@
 
 .comparison__empty {
   text-align: center;
-  color: #9ca3af;
+  color: #6b7280;
   padding: 48px 24px;
   font-size: 15px;
 }
 
 .comparison__back-btn {
-  background: #14abdd;
+  background: #087da2;
   color: white;
   border: none;
   padding: 12px 28px;
@@ -493,6 +524,60 @@
   border-top: 1px solid #f3f4f6;
 }
 
+.comparison__schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.comparison__schedule-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.comparison__schedule-action:hover {
+  border-color: #087da2;
+  color: #087da2;
+}
+
+.comparison__schedule-action--navigate {
+  border-color: #087da2;
+  color: #087da2;
+}
+
+.comparison__schedule-action--accept.comparison__schedule-action--selected {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.comparison__schedule-action--flag.comparison__schedule-action--selected {
+  border-color: #ea580c;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.comparison__schedule-action:focus-visible {
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
+}
+
 .comparison__choice {
   display: flex;
   align-items: center;
@@ -507,26 +592,30 @@
 }
 
 .comparison__choice input[type="radio"] {
-  accent-color: #14abdd;
+  accent-color: #087da2;
   width: 16px;
   height: 16px;
   flex-shrink: 0;
 }
 
 .comparison__choice--selected {
-  border-color: #14abdd;
+  border-color: #087da2;
   background: #e8f8fd;
 }
 
 .comparison__custom-input {
   margin-top: 6px;
   padding: 10px 12px;
-  border: 1.5px solid #14abdd;
+  border: 1.5px solid #087da2;
   border-radius: 8px;
   font-size: 14px;
   width: 100%;
   box-sizing: border-box;
-  outline: none;
+}
+
+.comparison__custom-input:focus-visible {
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
 }
 
 .comparison__submit-row {
@@ -552,7 +641,7 @@
   margin: 0;
 }
 
-.comparison__submit-hint { color: #9ca3af; }
+.comparison__submit-hint { color: #6b7280; }
 .comparison__submit-error { color: #ef4444; }
 
 /* ─── Discussion / mediation view ────────────────────────────────────────── */

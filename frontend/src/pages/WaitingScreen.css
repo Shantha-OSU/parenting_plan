@@ -57,7 +57,7 @@
 
 .waiting__hint {
   font-size: 12px;
-  color: #9ca3af;
+  color: #6b7280;
   margin: 0;
 }
 
@@ -65,7 +65,7 @@
   width: 40px;
   height: 40px;
   border: 3px solid #e5e7eb;
-  border-top-color: #14abdd;
+  border-top-color: #087da2;
   border-radius: 50%;
   animation: waiting-spin 0.8s linear infinite;
 }
@@ -97,6 +97,6 @@
 }
 
 .waiting__back-btn:hover {
-  border-color: #9ca3af;
+  border-color: #6b7280;
   color: #374151;
 }

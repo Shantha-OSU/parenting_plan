@@ -124,7 +124,8 @@
 .holiday-schedule select:focus,
 .holiday-schedule input:focus,
 .holiday-schedule textarea:focus {
-  outline: none;
+  outline: 3px solid #4955a5;
+  outline-offset: 2px;
   border-color: var(--input-border-focus);
   box-shadow: 0 0 0 3px rgba(20, 171, 221, 0.1);
 }

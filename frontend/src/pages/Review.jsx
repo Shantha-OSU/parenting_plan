@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { CheckCircle, Download, UserPlus, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, Download, UserPlus, Pencil, ChevronDown, ChevronUp, Flag } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/common/card';
 import Disclaimer from '../components/forms/Disclaimer';
 import InviteModal from '../components/common/InviteModal';
 import { useForm } from '../hooks/useForm';
+import useModalAccessibility from '../hooks/useModalAccessibility';
 import { auth } from '../lib/firebase';
 import { buildApiUrl } from '../lib/apiClient';
 import { answerText, fetchStandardTemplate, FormTemplatePrintDocument, collectAnswers, standardTemplate } from './FormDesigner';
@@ -26,6 +27,25 @@ const SECTION_META = {
   'information-sharing': { label: 'Information Sharing', route: '/informationsharing' },
   'tax-exemptions': { label: 'Tax Exemptions', route: '/tax-exemptions' },
 };
+
+const FLAG_KEY_ALIASES = {
+  'personalInfo.userRole': 'caseFilingStatus',
+  'getting-started.children': 'children',
+  'taxExemptions.parentRole': 'taxParentalRole',
+  'taxExemptions.claimingChildren': 'taxClaimingChildren',
+  'parentingTimeAndCommunication.agreeToTransportationPolicy': 'transportationAgreement',
+  'parentingTimeAndCommunication.agreeToActivityPolicy': 'activitiesAndScheduling',
+};
+
+function isResponseFlagged(qKey, flags = {}) {
+  const field = String(qKey).split('.').pop();
+  return Boolean(
+    flags[qKey]
+    || flags[`question-${qKey}`]
+    || flags[field]
+    || flags[FLAG_KEY_ALIASES[qKey]],
+  );
+}
 
 // Formats stored answer values using the question's human-readable option labels.
 function annotateParentReferences(text, isParent2) {
@@ -50,7 +70,19 @@ function formatAnswer(answer, question, isParent2, userRole) {
 
   if (question?.childAnswers) {
     const answeringParent = isParent2 ? 'parent2' : 'parent1';
-    return annotateParentReferences(answerText(answer, question, answeringParent, true), isParent2);
+    const formattedAnswer = annotateParentReferences(
+      answerText(answer, question, answeringParent, true),
+      isParent2,
+    );
+    return (
+      <span>
+        {formattedAnswer.split('\n').map((line, index) => (
+          <span className="review__answer-line" key={`${line}-${index}`}>
+            {line}
+          </span>
+        ))}
+      </span>
+    );
   }
   if (Array.isArray(answer)) return annotateParentReferences(answerText(answer, question), isParent2);
   return annotateParentReferences(formatValue(answer), isParent2);
@@ -83,6 +115,16 @@ function groupResponsesBySection(answers = [], questionsByKey = {}) {
     });
   });
   return grouped;
+}
+
+function applyQuestionFlags(groupedResponses, flags = {}) {
+  Object.values(groupedResponses).forEach((responses) => {
+    responses.forEach((response) => {
+      response.isFlagged = Boolean(
+        response.isFlagged || isResponseFlagged(response.qKey, flags)
+      );
+    });
+  });
 }
 
 /* Parenting time & Information Sharing question text */
@@ -294,14 +336,39 @@ function SectionBlock({ sectionKey, responses, onEdit, onEditQuestion, isOpen, o
     route: '/',
   };
   const hasAnswers = responses && responses.length > 0;
+  const handleSectionHeaderKeyDown = (event) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      onToggle();
+    } else if (event.key === ' ') {
+      event.preventDefault();
+    }
+  };
+  const handleSectionHeaderKeyUp = (event) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === ' ') {
+      event.preventDefault();
+      onToggle();
+    }
+  };
 
   return (
     <Card className="review__section-card">
       <CardHeader className="review__section-card-header">
-        <div className="review__section-header" onClick={onToggle} role="button" aria-expanded={isOpen} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onToggle()}>
+        <div
+          className="review__section-header"
+          onClick={onToggle}
+          role="button"
+          aria-expanded={isOpen}
+          tabIndex={0}
+          onKeyDown={handleSectionHeaderKeyDown}
+          onKeyUp={handleSectionHeaderKeyUp}
+        >
           <div className="review__section-header-left">
             <CheckCircle
               size={18}
+              aria-hidden="true"
               className={hasAnswers ? 'review__check--complete' : 'review__check--incomplete'}
             />
             <span className="review__section-title">{meta.label}</span>
@@ -317,13 +384,15 @@ function SectionBlock({ sectionKey, responses, onEdit, onEditQuestion, isOpen, o
                   onEdit(meta.route);
                 }
               }}
+              onKeyDown={(e) => e.stopPropagation()}
+              onKeyUp={(e) => e.stopPropagation()}
               aria-label={`Edit ${meta.label}`}
               aria-pressed={supportsQuestionEditing ? isEditingQuestions : undefined}
             >
-              <Pencil size={14} />
+              <Pencil size={14} aria-hidden="true" />
               {supportsQuestionEditing && isEditingQuestions ? 'Done' : 'Edit'}
             </button>
-            {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            {isOpen ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
           </div>
         </div>
       </CardHeader>
@@ -339,17 +408,25 @@ function SectionBlock({ sectionKey, responses, onEdit, onEditQuestion, isOpen, o
             <ul className="review__answer-list">
               {responses.map((r, i) => (
                 <li key={r.qKey || i} className="review__answer-item">
-                  {supportsQuestionEditing && isEditingQuestions ? (
-                    <button
-                      className="review__answer-key review__answer-question-btn"
-                      onClick={() => onEditQuestion(r.qKey)}
-                      aria-label={`Edit ${r.label}`}
-                    >
-                      {r.label}
-                    </button>
-                  ) : (
-                    <span className="review__answer-key">{r.label}</span>
-                  )}
+                  <div className="review__answer-question">
+                    {supportsQuestionEditing && isEditingQuestions ? (
+                      <button
+                        className="review__answer-key review__answer-question-btn"
+                        onClick={() => onEditQuestion(r.qKey)}
+                        aria-label={`Edit ${r.label}`}
+                      >
+                        {r.label}
+                      </button>
+                    ) : (
+                      <span className="review__answer-key">{r.label}</span>
+                    )}
+                    {r.isFlagged && (
+                      <span className="review__flag-badge" aria-label="Flagged for review">
+                        <Flag size={14} aria-hidden="true" />
+                        Flagged
+                      </span>
+                    )}
+                  </div>
                   <span className="review__answer-value">
                     {formatAnswer(r.answer, r.question, isParent2, userRole)}
                   </span>
@@ -473,6 +550,7 @@ export default function Review() {
   const groupedResponses = groupResponsesBySection(reviewPlan.answers || [], questionsByKey);
   addCustomSectionResponses(groupedResponses, reviewPlan);
   addStateSectionResponses(groupedResponses, reviewPlan);
+  applyQuestionFlags(groupedResponses, state.flags);
   const designerState = {
     plan: reviewPlan,
     parents: {
@@ -505,6 +583,7 @@ export default function Review() {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [showSwitchPrompt, setShowSwitchPrompt] = useState(false);
+  const switchModalAccessibility = useModalAccessibility(showSwitchPrompt, () => setShowSwitchPrompt(false));
   const [caseStatus, setCaseStatus] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [standardReviewTemplate, setStandardReviewTemplate] = useState(null);
@@ -657,8 +736,17 @@ export default function Review() {
         {/* Switch-to-collaborative confirmation prompt */}
         {showSwitchPrompt && (
           <div className="delete-modal__overlay" onClick={() => setShowSwitchPrompt(false)}>
-            <div className="delete-modal" onClick={e => e.stopPropagation()}>
-              <h3 className="delete-modal__title">Switch to collaborative mode?</h3>
+            <div
+              ref={switchModalAccessibility.dialogRef}
+              className="delete-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="review-switch-mode-title"
+              tabIndex="-1"
+              onClick={e => e.stopPropagation()}
+              onKeyDown={switchModalAccessibility.handleKeyDown}
+            >
+              <h3 id="review-switch-mode-title" className="delete-modal__title">Switch to collaborative mode?</h3>
               <p className="delete-modal__body">
                 You're currently completing this plan individually. Switching to collaborative
                 mode will allow your co-parent to fill out their section separately. Would you
@@ -728,7 +816,7 @@ export default function Review() {
                     className="review__btn-invite"
                     onClick={handleInviteClick}
                   >
-                    <UserPlus size={16} />
+                    <UserPlus size={16} aria-hidden="true" />
                     {collaborationMode === 'individual' || collaborationMode === ''
                       ? 'Switch & Invite Co-Parent'
                       : 'Invite Co-Parent'}
@@ -736,7 +824,7 @@ export default function Review() {
                 )}
 
                 <button className="review__btn-download" onClick={handleDownload}>
-                  <Download size={16} />
+                  <Download size={16} aria-hidden="true" />
                   Download PDF
                 </button>
               </div>

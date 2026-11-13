@@ -1,5 +1,6 @@
 import { Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import useModalAccessibility from '../../hooks/useModalAccessibility';
 import './ScheduleBuilder.css';
 
 const timeToMinutes = (time) => {
@@ -40,6 +41,7 @@ export default function ScheduleBuilder({
   const [schedule, setSchedule] = useState(value);
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const modalAccessibility = useModalAccessibility(showModal, () => setShowModal(false));
   const [recurrenceFrequency, setRecurrenceFrequency] = useState('weekly');
   const [recurrenceDays, setRecurrenceDays] = useState([]);
   const [recurrenceStartTime, setRecurrenceStartTime] = useState('');
@@ -415,9 +417,18 @@ export default function ScheduleBuilder({
       {/* Modal for editing day */}
       {showModal && selectedDay && (
         <div className="schedule-builder__modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="schedule-builder__modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={modalAccessibility.dialogRef}
+            className="schedule-builder__modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="schedule-builder-modal-title"
+            tabIndex="-1"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={modalAccessibility.handleKeyDown}
+          >
             <div className="schedule-builder__modal-header">
-              <h3>
+              <h3 id="schedule-builder-modal-title">
                 {getDayLabel(selectedDay.dayOfWeek)} - {weekLabels[selectedDay.week]}
               </h3>
               <button

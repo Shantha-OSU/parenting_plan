@@ -10,6 +10,7 @@ const resolutionItemSchema = new mongoose.Schema({
   proposedAnswer: { type: mongoose.Schema.Types.Mixed },
   // 'parent1' = kept own answer, 'parent2' = adopted co-parent's, 'custom' = free-text
   source: { type: String, enum: ['parent1', 'parent2', 'custom'], required: true },
+  flaggedForDiscussion: { type: Boolean, default: false },
 }, { _id: false });
 
 const resolutionSchema = new mongoose.Schema(

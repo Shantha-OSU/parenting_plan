@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { buildApiUrl } from '../lib/apiClient';
@@ -131,9 +131,9 @@ export default function ResolutionReview() {
   if (error) {
     return (
       <div className="res-review res-review--centered">
-        <AlertTriangle size={40} color="#f97316" />
+        <AlertTriangle size={40} color="#f97316" aria-hidden="true" />
         <p className="res-review__error">{error}</p>
-        <button className="res-review__back-btn" onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+        <Link className="res-review__back-btn" to="/dashboard">Back to Dashboard</Link>
       </div>
     );
   }
@@ -144,9 +144,9 @@ export default function ResolutionReview() {
   return (
     <div className="res-review">
       <div className="res-review__header">
-        <button className="res-review__nav-back" onClick={() => navigate('/dashboard')}>
-          <ArrowLeft size={18} /> Dashboard
-        </button>
+        <Link className="res-review__nav-back" to="/dashboard">
+          <ArrowLeft size={18} aria-hidden="true" /> Dashboard
+        </Link>
         <div>
           <h1 className="res-review__title">Review Proposed Resolutions</h1>
           <p className="res-review__subtitle">
@@ -158,10 +158,10 @@ export default function ResolutionReview() {
       <div className="res-review__content">
         <div className="res-review__progress">
           <span className="res-review__progress-item res-review__progress-item--accepted">
-            <CheckCircle size={14} /> {acceptedCount} accepted
+            <CheckCircle size={14} aria-hidden="true" /> {acceptedCount} accepted
           </span>
           <span className="res-review__progress-item res-review__progress-item--flagged">
-            <Flag size={14} /> {flaggedCount} flagged
+            <Flag size={14} aria-hidden="true" /> {flaggedCount} flagged
           </span>
           <span className="res-review__progress-item">
             {resolutions.length - acceptedCount - flaggedCount} remaining
@@ -206,15 +206,17 @@ export default function ResolutionReview() {
               <div className="res-review__actions">
                 <button
                   className={`res-review__btn res-review__btn--accept ${accepted === true ? 'res-review__btn--active' : ''}`}
+                  aria-pressed={accepted === true}
                   onClick={() => setReviews((prev) => ({ ...prev, [r.qKey]: true }))}
                 >
-                  <CheckCircle size={15} /> Accept
+                  <CheckCircle size={15} aria-hidden="true" /> Accept
                 </button>
                 <button
                   className={`res-review__btn res-review__btn--flag ${accepted === false ? 'res-review__btn--active-flag' : ''}`}
+                  aria-pressed={accepted === false}
                   onClick={() => setReviews((prev) => ({ ...prev, [r.qKey]: false }))}
                 >
-                  <Flag size={15} /> Flag for Discussion
+                  <Flag size={15} aria-hidden="true" /> Flag for Discussion
                 </button>
               </div>
             </div>
@@ -233,8 +235,11 @@ export default function ResolutionReview() {
             <p className="res-review__submit-hint">Review all items above to continue.</p>
           )}
           {submitStatus === 'error' && (
-            <p className="res-review__submit-error">Failed to send. Please try again.</p>
+            <p className="res-review__submit-error" role="alert">Failed to send. Please try again.</p>
           )}
+          <p className="sr-only" aria-live="polite">
+            {submitStatus === 'saving' ? 'Sending feedback to your co-parent.' : ''}
+          </p>
         </div>
       </div>
     </div>

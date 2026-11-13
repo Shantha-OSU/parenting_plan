@@ -1,10 +1,8 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import './StaticPage.css';
 import { useEffect } from 'react';
 
 export default function ContactSupport() {
-  const navigate = useNavigate();
-
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -12,9 +10,9 @@ export default function ContactSupport() {
   return (
     <div className="static-page">
       <div className="static-page__container">
-        <button className="static-page__back" onClick={() => navigate('/')}>
+        <Link className="static-page__back" to="/">
           ← Back
-        </button>
+        </Link>
 
         <h1 className="static-page__title">Contact Support</h1>
 

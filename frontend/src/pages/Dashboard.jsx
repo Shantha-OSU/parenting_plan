@@ -1,10 +1,11 @@
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { Calendar, FileText, Lock, Pencil, Plus, Trash2, UserPlus, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
 import InviteModal from '../components/common/InviteModal';
 import { useForm } from '../hooks/useForm';
+import useModalAccessibility from '../hooks/useModalAccessibility';
 import { buildApiUrl } from '../lib/apiClient';
 import { auth } from '../lib/firebase';
 import './Dashboard.css';
@@ -33,13 +34,31 @@ export default function Dashboard() {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const contextMenuItemRefs = useRef([]);
+  const deleteModalAccessibility = useModalAccessibility(Boolean(deleteTarget), () => setDeleteTarget(null));
+  const switchModalAccessibility = useModalAccessibility(showSwitchPrompt, () => setShowSwitchPrompt(false));
+
+  const closeContextMenu = useCallback((restoreFocus = true) => {
+    const trigger = contextMenu?.trigger;
+    setContextMenu(null);
+    if (restoreFocus && trigger) {
+      requestAnimationFrame(() => trigger.focus());
+    }
+  }, [contextMenu]);
 
   useEffect(() => {
-    const close = () => setContextMenu(null);
+    const close = () => closeContextMenu(false);
     window.addEventListener('click', close);
     window.addEventListener('scroll', close);
     return () => { window.removeEventListener('click', close); window.removeEventListener('scroll', close); };
-  }, []);
+  }, [closeContextMenu]);
+
+  useEffect(() => {
+    if (contextMenu) {
+      contextMenuItemRefs.current[0]?.focus();
+    }
+  }, [contextMenu]);
 
   /*
     This function will be ran anytime the "user" object is updated.
@@ -74,10 +93,44 @@ export default function Dashboard() {
 
   const handleContextMenu = (e, plan) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY, plan });
+    const bounds = e.currentTarget.getBoundingClientRect();
+    setContextMenu({
+      x: e.clientX || bounds.left + 16,
+      y: e.clientY || bounds.top + 16,
+      plan,
+      trigger: e.currentTarget,
+    });
   };
 
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const handleContextMenuKeyDown = (event) => {
+    const itemCount = contextMenuItemRefs.current.length;
+    if (!itemCount) return;
+
+    let nextIndex;
+    switch (event.key) {
+      case 'ArrowDown':
+        nextIndex = (contextMenuItemRefs.current.indexOf(document.activeElement) + 1) % itemCount;
+        break;
+      case 'ArrowUp':
+        nextIndex = (contextMenuItemRefs.current.indexOf(document.activeElement) - 1 + itemCount) % itemCount;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = itemCount - 1;
+        break;
+      case 'Escape':
+        event.preventDefault();
+        closeContextMenu();
+        return;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    contextMenuItemRefs.current[nextIndex]?.focus();
+  };
 
   const handleDeletePlan = (id) => {
     if (user) {
@@ -257,8 +310,17 @@ export default function Dashboard() {
       {/* Delete confirmation modal */}
       {deleteTarget && (
         <div className="delete-modal__overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="delete-modal" onClick={e => e.stopPropagation()}>
-            <h3 className="delete-modal__title">Delete plan?</h3>
+          <div
+            ref={deleteModalAccessibility.dialogRef}
+            className="delete-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-plan-title"
+            tabIndex="-1"
+            onClick={e => e.stopPropagation()}
+            onKeyDown={deleteModalAccessibility.handleKeyDown}
+          >
+            <h3 id="delete-plan-title" className="delete-modal__title">Delete plan?</h3>
             <p className="delete-modal__body">
               Are you sure you want to delete <strong>"{deleteTarget.name}"</strong>? This action cannot be undone.
             </p>
@@ -273,8 +335,17 @@ export default function Dashboard() {
       {/* Switch-to-collaborative confirmation prompt */}
       {showSwitchPrompt && (
         <div className="delete-modal__overlay" onClick={() => setShowSwitchPrompt(false)}>
-          <div className="delete-modal" onClick={e => e.stopPropagation()}>
-            <h3 className="delete-modal__title">Switch to collaborative mode?</h3>
+          <div
+            ref={switchModalAccessibility.dialogRef}
+            className="delete-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="switch-mode-title"
+            tabIndex="-1"
+            onClick={e => e.stopPropagation()}
+            onKeyDown={switchModalAccessibility.handleKeyDown}
+          >
+            <h3 id="switch-mode-title" className="delete-modal__title">Switch to collaborative mode?</h3>
             <p className="delete-modal__body">
               You're currently completing this plan individually. Switching to collaborative mode
               will allow your co-parent to fill out their section separately. Would you like to switch?
@@ -296,12 +367,31 @@ export default function Dashboard() {
           className="context-menu"
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={e => e.stopPropagation()}
+          onKeyDown={handleContextMenuKeyDown}
+          role="menu"
+          aria-label={`Actions for ${contextMenu.plan.name}`}
         >
-          <li onClick={() => { startEditing(contextMenu.plan); setContextMenu(null); }}>
-            <Pencil size={14} /> Rename
+          <li role="none">
+            <button
+              type="button"
+              role="menuitem"
+              className="context-menu__item"
+              ref={element => { contextMenuItemRefs.current[0] = element; }}
+              onClick={() => { startEditing(contextMenu.plan); closeContextMenu(); }}
+            >
+              <Pencil size={14} aria-hidden="true" /> Rename
+            </button>
           </li>
-          <li className="context-menu__delete" onClick={() => { setDeleteTarget(contextMenu.plan); setContextMenu(null); }}>
-            <Trash2 size={14} /> Delete
+          <li role="none">
+            <button
+              type="button"
+              role="menuitem"
+              className="context-menu__item context-menu__delete"
+              ref={element => { contextMenuItemRefs.current[1] = element; }}
+              onClick={() => { setDeleteTarget(contextMenu.plan); closeContextMenu(); }}
+            >
+              <Trash2 size={14} aria-hidden="true" /> Delete
+            </button>
           </li>
         </ul>
       )}
@@ -312,7 +402,7 @@ export default function Dashboard() {
         {showInviteUI && (
           <div className="dashboard__invite-banner">
             <div className="dashboard__invite-icon">
-              <Users size={32} color="#14abdd" />
+              <Users size={32} color="#14abdd" aria-hidden="true" />
             </div>
 
             <div className="dashboard__invite-text">
@@ -344,12 +434,12 @@ export default function Dashboard() {
             <div className="dashboard__plans-actions">
               {isAdmin && (
                 <Link className="dashboard__admin-btn" to="/admin">
-                  <Lock size={16} />
+                  <Lock size={16} aria-hidden="true" />
                   Admin View
                 </Link>
               )}
               <button className="dashboard__new-plan-btn" onClick={handleNewPlan}>
-                <Plus size={16} />
+                <Plus size={16} aria-hidden="true" />
                 New Plan
               </button>
             </div>
@@ -360,18 +450,23 @@ export default function Dashboard() {
               const planCollaborationMode = plan.collaborationMode ?? '';
 
               return (
-                <div key={plan._id} className={`plan-card${plan.isShared ? ' plan-card--shared' : ''}`} onContextMenu={e => handleContextMenu(e, plan)}>
+                <div
+                  key={plan._id}
+                  className={`plan-card${plan.isShared ? ' plan-card--shared' : ''}`}
+                  onContextMenu={e => handleContextMenu(e, plan)}
+                  tabIndex={-1}
+                >
                 <div className="plan-card__top">
                   <div className="plan-card__icon">
-                    <FileText size={24} color="#6b7280" />
+                    <FileText size={24} color="#6b7280" aria-hidden="true" />
                   </div>
                   {plan.isShared && (
                     <span className="plan-card__shared-badge">
-                      <Users size={12} /> Shared
+                      <Users size={12} aria-hidden="true" /> Shared
                     </span>
                   )}
                   <button className="plan-card__delete-btn" onClick={() => setDeleteTarget(plan)}>
-                    <Trash2 size={16} />
+                    <Trash2 size={16} aria-hidden="true" />
                   </button>
                 </div>
 
@@ -389,14 +484,14 @@ export default function Dashboard() {
                     <>
                       <h3 className="plan-card__name">{plan.name}</h3>
                       <button className="plan-card__edit-btn" onClick={() => startEditing(plan)}>
-                        <Pencil size={14} />
+                        <Pencil size={14} aria-hidden="true" />
                       </button>
                     </>
                   )}
                 </div>
 
                 <div className="plan-card__meta">
-                  <Calendar size={14} color="#9ca3af" />
+                  <Calendar size={14} color="#9ca3af" aria-hidden="true" />
                   <span>Last modified: {plan.lastModified}</span>
                 </div>
                 {(() => {
@@ -497,7 +592,7 @@ export default function Dashboard() {
                 {/* Per-card invite button — hidden for locked-individual users */}
                 {planCollaborationMode !== 'locked-individual' && !plan.isShared && (
                   <button className="plan-card__invite-btn" onClick={() => { setActiveCaseId(plan.caseId || null); handleInviteClick(plan); }}>
-                  <UserPlus size={14} />
+                  <UserPlus size={14} aria-hidden="true" />
                     {planCollaborationMode === 'individual' || planCollaborationMode === '' ? 'Switch & Invite' : 'Invite Parent'}
                   </button>
                 )}
