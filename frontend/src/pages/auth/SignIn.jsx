@@ -75,7 +75,7 @@ export default function SignIn() {
   };
 
   return (
-    <div className="auth-page">
+    <main className="auth-page">
       <header className="auth-top-nav">
         <Link to="/" className="auth-top-nav__logo" aria-label="Return to ShareCare home">
           <img src={logo} alt="ShareCare" />
