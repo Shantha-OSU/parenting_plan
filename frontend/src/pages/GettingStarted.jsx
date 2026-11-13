@@ -139,6 +139,8 @@ export default function GettingStarted() {
   const custodyGrantedTo = plan.custodyGrantedTo ?? '';
   const parentingGuideInfo = state?.parentingGuideInfo ?? '';
   const errors = formData.errors ?? {};
+  const residentialParent = plan.residentialParent ?? '';
+  const residentialParentError = errors.residentialParent ?? '';
 
   const [collaborationModeError, setCollaborationModeError] = useState('');
   const [currentCircumstanceError, setCurrentCircumstanceError] = useState('');
